@@ -15,7 +15,6 @@ USE_CUDA = True
 PAD_token = '<pad>'
 UNKNOWN_TOKEN = '<unk>'
 PAD_LEN = 30
-BOW_SIZE = 5000
 WORD_EMBEDDING_VOCAB = 30000
 EMBEDDING_DIM = 200
 
@@ -104,9 +103,10 @@ class DataHelper:
         build_dcit(fold_path)  # Build vocabulary first
 
         # Create BOW embedding
-        self.word_embedding = nn.Embedding(self.n_words, BOW_SIZE)
-
-        pass
+        self.word_embedding = nn.Embedding(self.n_words, self.n_words)
+        self.word_embedding.weight = nn.Parameter(torch.FloatTensor(np.eye(self.n_words)))
+        self.word_embedding.weight.requires_grad = False
+        tmp = 0
 
     def load_word_embedding(self):
         self.word_embedding = nn.Embedding(self.n_words, EMBEDDING_DIM)
@@ -136,7 +136,7 @@ class DataHelper:
 
 if __name__ == '__main__':
     dh = DataHelper()
-    dh.load_data('data/Folds/fold_0/test.csv')
+    dh.load_bow_embedding('data/Folds/fold_0/')
     tmp = 0
     # dh.load_emotion_data()
     #dh.load_word_embedding()
