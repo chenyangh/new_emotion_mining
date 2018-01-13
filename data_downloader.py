@@ -16,5 +16,5 @@ zip_path = os.path.join(glove_directory, 'glove.twitter.27B.zip')
 urllib.request.urlretrieve(glove_url, zip_path)
 
 zip_f = zipfile.ZipFile(zip_path)
-zip_f.extract(member='glove.twitter.27B.200d.txt', path=zip_path)
+zip_f.extract(member='glove.twitter.27B.200d.txt', path=glove_directory)
 os.remove(zip_path)
