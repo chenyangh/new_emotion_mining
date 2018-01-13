@@ -20,29 +20,23 @@ class SoftDotAttention(nn.Module):
     def __init__(self, dim):
         """Initialize layer."""
         super(SoftDotAttention, self).__init__()
-        self.linear_in = nn.Linear(dim, dim, bias=False)
+        self.linear_in = nn.Linear(dim, dim)
         self.sm = nn.Softmax()
         self.linear_out = nn.Linear(dim * 2, dim, bias=False)
         self.tanh = nn.Tanh()
         self.mask = None
+        self.u_w = Variable(torch.randn(dim, 1)).cuda()
 
     def forward(self, input, context):
         """Propogate input through the network.
         input: batch x dim
         context: batch x sourceL x dim
         """
-        target = self.linear_in(input).unsqueeze(2)  # batch x dim x 1
-
+        u = self.tanh(self.linear_in(context))  # batch x dim x 1
+        # u.view(u.size()[0] * u.size()[1], u.size()[2])
         # Get attention
-        attn = torch.bmm(context, target).squeeze(2)  # batch x sourceL
-        attn = self.sm(attn)
-        attn3 = attn.view(attn.size(0), 1, attn.size(1))  # batch x 1 x sourceL
-
-        weighted_context = torch.bmm(attn3, context).squeeze(1)  # batch x dim
-        h_tilde = torch.cat((weighted_context, input), 1)
-
-        h_tilde = self.tanh(self.linear_out(h_tilde))
-
+        attn = self.sm((u @ self.u_w).squeeze(2)).unsqueeze(1)
+        h_tilde = torch.bmm(attn, context).squeeze(1)
         return h_tilde, attn
 
 
@@ -61,26 +55,28 @@ class AttentionLSTMClassifier(nn.Module):
         self.attention_layer = SoftDotAttention(hidden_dim)
         self.last_layer = nn.Linear(hidden_dim, label_size * 100)
         # loss
-        weight_mask = torch.ones(vocab_size).cuda()
-        weight_mask[word2id['<pad>']] = 0
-        self.loss_criterion = nn.CrossEntropyLoss(weight=weight_mask)
+        #weight_mask = torch.ones(vocab_size).cuda()
+        #weight_mask[word2id['<pad>']] = 0
+        self.loss_criterion = nn.BCELoss()
 
-    def init_hidden(self):
-        h0 = Variable(torch.zeros(1, self.batch_size, self.hidden_dim).cuda())
-        c0 = Variable(torch.zeros(1, self.batch_size, self.hidden_dim).cuda())
+    def init_hidden(self, x):
+        batch_size = x.size(0)
+        h0 = Variable(torch.zeros(1, batch_size, self.hidden_dim), requires_grad=False).cuda()
+        c0 = Variable(torch.zeros(1, batch_size, self.hidden_dim), requires_grad=False).cuda()
         return (h0, c0)
 
-    def forward(self,  x, y):
+    def forward(self, x, y):
         embedded = self.embeddings(x)
         # = embeds.view(len(sentence), self.batch_size, -1)
-        hidden = self.init_hidden()
+        hidden = self.init_hidden(x)
         lstm_out, hidden = self.lstm(embedded, hidden)
         out, att = self.attention_layer(hidden, lstm_out)
 
         # global attention
 
-        y = self.hidden2label(lstm_out[-1])
-        return y
+        y_pred = self.hidden2label(out)
+        loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
+        return loss
 
     def load_glove_embedding(self, id2word):
         """

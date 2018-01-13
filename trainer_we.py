@@ -46,7 +46,7 @@ class DataSet(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return torch.LongTensor(self.data[idx]), torch.LongTensor(self.label[idx])
+        return torch.LongTensor(self.data[idx]), torch.FloatTensor(self.label[idx])
 
 
 if __name__ == '__main__':
@@ -68,6 +68,19 @@ if __name__ == '__main__':
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
                                     num_labels, batch_size).cuda()
 
-    for i, (data, label) in enumerate(train_loader):
-        loss = model(Variable(data).cuda(), label)
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
+    for _ in range(3):
+        train_loss = 0
+        for i, (data, label) in enumerate(train_loader):
+            optimizer.zero_grad()
+            loss = model(Variable(data).cuda(), Variable(label).cuda())
+            loss.backward()
+            train_loss += loss.data[0]
+        print("Train Loss", train_loss)
+
+        test_loss = 0
+        for i, (data, label) in enumerate(test_loader):
+            loss = model(Variable(data, volatile=True).cuda(), Variable(label, volatile=True).cuda())
+            test_loss += loss.data[0]
+        print("Evaluation: --", test_loss)
