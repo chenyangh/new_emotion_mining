@@ -21,9 +21,7 @@ class SoftDotAttention(nn.Module):
         """Initialize layer."""
         super(SoftDotAttention, self).__init__()
         self.linear_in = nn.Linear(dim, dim)
-        self.sm = nn.Softmax()
         self.linear_out = nn.Linear(dim * 2, dim, bias=False)
-        self.tanh = nn.Tanh()
         self.mask = None
         self.u_w = Variable(torch.randn(dim, 1)).cuda()
 
@@ -32,10 +30,10 @@ class SoftDotAttention(nn.Module):
         input: batch x dim
         context: batch x sourceL x dim
         """
-        u = self.tanh(self.linear_in(context))  # batch x dim x 1
+        u = F.tanh(self.linear_in(context))  # batch x dim x 1
         # u.view(u.size()[0] * u.size()[1], u.size()[2])
         # Get attention
-        attn = self.sm((u @ self.u_w).squeeze(2)).unsqueeze(1)
+        attn = F.softmax((u @ self.u_w).squeeze(2), dim=0).unsqueeze(1)
         h_tilde = torch.bmm(attn, context).squeeze(1)
         return h_tilde, attn
 
@@ -57,7 +55,7 @@ class AttentionLSTMClassifier(nn.Module):
         # loss
         #weight_mask = torch.ones(vocab_size).cuda()
         #weight_mask[word2id['<pad>']] = 0
-        self.loss_criterion = nn.BCELoss()
+        # self.loss_criterion = nn.BCELoss()
 
     def init_hidden(self, x):
         batch_size = x.size(0)
@@ -65,7 +63,7 @@ class AttentionLSTMClassifier(nn.Module):
         c0 = Variable(torch.zeros(1, batch_size, self.hidden_dim), requires_grad=False).cuda()
         return (h0, c0)
 
-    def forward(self, x, y):
+    def forward(self, x):
         embedded = self.embeddings(x)
         # = embeds.view(len(sentence), self.batch_size, -1)
         hidden = self.init_hidden(x)
@@ -73,10 +71,9 @@ class AttentionLSTMClassifier(nn.Module):
         out, att = self.attention_layer(hidden, lstm_out)
 
         # global attention
-
-        y_pred = self.hidden2label(out)
-        loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
-        return loss
+        y_pred = self.hidden2label(out) # lstm_out[:, -1:].squeeze(1)
+        # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
+        return y_pred
 
     def load_glove_embedding(self, id2word):
         """

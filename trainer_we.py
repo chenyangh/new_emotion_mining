@@ -1,8 +1,5 @@
-import math
-import numpy as np
-import logging
-import argparse
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 import pickle as pkl
 import torch
 import torch.nn as nn
@@ -13,7 +10,7 @@ from torch.autograd import Variable
 from data_helper import build_vocab
 from model import AttentionLSTMClassifier
 from torch.utils.data import Dataset, DataLoader
-
+from early_stop import EarlyStop
 
 class DataSet(Dataset):
     def __init__(self, __fold_path, __pad_len, __word2id, __num_labels, max_size=None):
@@ -54,13 +51,14 @@ if __name__ == '__main__':
     vocab_size = 20000
     pad_len = 30
     num_labels = 16
-    batch_size = 300
+    batch_size = 400
     embedding_dim = 200
     hidden_dim = 600
 
+    es = EarlyStop(3)
     word2id, id2word = build_vocab(fold_path, vocab_size, use_unk=True)
     train_data = DataSet(os.path.join(fold_path, 'train.csv'), pad_len, word2id, num_labels)
-    train_loader = DataLoader(train_data, batch_size=batch_size)
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
     test_data = DataSet(os.path.join(fold_path, 'test.csv'), pad_len, word2id, num_labels)
     test_loader = DataLoader(train_data, batch_size=batch_size)
@@ -68,19 +66,26 @@ if __name__ == '__main__':
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
                                     num_labels, batch_size).cuda()
 
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
-
-    for _ in range(3):
+    optimizer = optim.Adam(model.parameters())
+    loss_criterion = nn.BCELoss()
+    for _ in range(20):
         train_loss = 0
         for i, (data, label) in enumerate(train_loader):
+            y_pred = model(Variable(data).cuda())
             optimizer.zero_grad()
-            loss = model(Variable(data).cuda(), Variable(label).cuda())
+            loss = loss_criterion(F.sigmoid(y_pred), Variable(label).cuda())
             loss.backward()
+            optimizer.step()
             train_loss += loss.data[0]
-        print("Train Loss", train_loss)
+        print("Train Loss: ", train_loss)
 
         test_loss = 0
         for i, (data, label) in enumerate(test_loader):
-            loss = model(Variable(data, volatile=True).cuda(), Variable(label, volatile=True).cuda())
+            y_pred = model(Variable(data, volatile=True).cuda())
+            loss = loss_criterion(F.sigmoid(y_pred), Variable(label, volatile=True).cuda())
             test_loss += loss.data[0]
-        print("Evaluation: --", test_loss)
+        es.new_loss(test_loss)
+        if es.if_stop():
+            'Start over fitting'
+            break
+        print("Evaluation: ", test_loss)
