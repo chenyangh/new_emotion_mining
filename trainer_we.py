@@ -128,13 +128,16 @@ if __name__ == '__main__':
             pred_list.append(y_pred.data.cpu().numpy())
             gold_list.append(label.numpy())
 
-        threshold = 0.13
-        print(threshold, ":",
-              CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
         threshold = 0.16
         print(threshold, ":",
               CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
-        threshold = 0.15
+        threshold = 0.18
+        print(threshold, ":",
+              CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
+        threshold = 0.2
+        print(threshold, ":",
+              CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
+        threshold = 0.22
         print(threshold, ":",
               CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
         threshold = 0.14

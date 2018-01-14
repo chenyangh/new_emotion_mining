@@ -41,7 +41,7 @@ class SoftDotAttention(nn.Module):
         weighted_context = torch.bmm(attn3, context).squeeze(1)  # batch x dim
         h_tilde = torch.cat((weighted_context, input), 1)
 
-        h_tilde = self.tanh(self.linear_out(h_tilde))
+        h_tilde = F.selu(self.linear_out(h_tilde))
 
         return h_tilde, attn
 
@@ -65,7 +65,7 @@ class SelfAttention(nn.Module):
         input: batch x dim
         context: batch x sourceL x dim
         """
-        u = F.tanh(self.linear_in(context))  # batch x dim x 1
+        u = F.selu(self.linear_in(context))  # batch x dim x 1
         # u.view(u.size()[0] * u.size()[1], u.size()[2])
         # Get attention
         attn = F.softmax((u @ self.u_w).squeeze(2), dim=0).unsqueeze(1)
@@ -113,7 +113,7 @@ class AttentionLSTMClassifier(nn.Module):
             y_pred = self.hidden2label(out)
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
 
-        return F.softmax(y_pred, dim=1)
+        return F.softmax(F.selu(y_pred), dim=1)
 
     def load_glove_embedding(self, id2word):
         """
