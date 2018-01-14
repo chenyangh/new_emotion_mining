@@ -10,7 +10,6 @@ import torch
 from torch.autograd import Variable
 import os
 
-
 class SoftDotAttention(nn.Module):
     """Soft Dot Attention.
     Ref: http://www.aclweb.org/anthology/D15-1166
@@ -20,6 +19,41 @@ class SoftDotAttention(nn.Module):
     def __init__(self, dim):
         """Initialize layer."""
         super(SoftDotAttention, self).__init__()
+        self.linear_in = nn.Linear(dim, dim, bias=False)
+        self.sm = nn.Softmax()
+        self.linear_out = nn.Linear(dim * 2, dim, bias=False)
+        self.tanh = nn.Tanh()
+        self.mask = None
+
+    def forward(self, input, context):
+        """Propogate input through the network.
+        input: batch x dim
+        context: batch x sourceL x dim
+        """
+        target = self.linear_in(input).unsqueeze(2)  # batch x dim x 1
+
+        # Get attention
+        attn = torch.bmm(context, target).squeeze(2)  # batch x sourceL
+        attn = self.sm(attn)
+        attn3 = attn.view(attn.size(0), 1, attn.size(1))  # batch x 1 x sourceL
+
+        weighted_context = torch.bmm(attn3, context).squeeze(1)  # batch x dim
+        h_tilde = torch.cat((weighted_context, input), 1)
+
+        h_tilde = self.tanh(self.linear_out(h_tilde))
+
+        return h_tilde, attn
+
+
+class SelfAttention(nn.Module):
+    """Soft Dot Attention.
+    Ref: blablabla
+    Adapted from PyTorch OPEN NMT.
+    """
+
+    def __init__(self, dim):
+        """Initialize layer."""
+        super(SelfAttention, self).__init__()
         self.linear_in = nn.Linear(dim, dim)
         self.linear_out = nn.Linear(dim * 2, dim, bias=False)
         self.mask = None
@@ -69,10 +103,13 @@ class AttentionLSTMClassifier(nn.Module):
         # = embeds.view(len(sentence), self.batch_size, -1)
         hidden = self.init_hidden(x)
         lstm_out, hidden = self.lstm(embedded, hidden)
-        out, att = self.attention_layer(hidden, lstm_out)
 
         # global attention
-        y_pred = self.hidden2label(lstm_out[:, -1:].squeeze(1))  # lstm_out[:, -1:].squeeze(1)
+        if False:
+            y_pred = self.hidden2label(lstm_out[:, -1:].squeeze(1))  # lstm_out[:, -1:].squeeze(1)
+        else:
+            out, att = self.attention_layer(lstm_out[:, -1:].squeeze(1), lstm_out)
+            y_pred = self.hidden2label(out)
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
 
         return F.softmax(y_pred, dim=1)

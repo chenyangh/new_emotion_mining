@@ -86,15 +86,15 @@ def build_vocab(fold_path, vocab_size, use_unk=True):
 
 
 if __name__ == '__main__':
-    fold_path = 'data/Folds_9_Emotions/fold_0'
+    fold_path = 'data/Folds/fold_0'
     vocab_size = 20000
     pad_len = 30
-    num_labels = 9
+    num_labels = 16
     batch_size = 400
     embedding_dim = 200
     hidden_dim = 600
 
-    es = EarlyStop(3)
+    es = EarlyStop(5)
     word2id, id2word = build_vocab(fold_path, vocab_size, use_unk=True)
     train_data = DataSet(os.path.join(fold_path, 'train.csv'), pad_len, word2id, num_labels)
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
@@ -129,16 +129,16 @@ if __name__ == '__main__':
             pred_list.append(y_pred.data.cpu().numpy())
             gold_list.append(label.numpy())
 
-        threshold = 0.2
+        threshold = 0.13
         print(threshold, ":",
               CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
-        threshold = 0.25
+        threshold = 0.16
         print(threshold, ":",
               CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
-        threshold = 0.18
+        threshold = 0.15
         print(threshold, ":",
               CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
-        threshold = 0.3
+        threshold = 0.14
         print(threshold, ":",
               CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
 
