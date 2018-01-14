@@ -51,7 +51,12 @@ class AttentionLSTMClassifier(nn.Module):
         self.hidden2label = nn.Linear(hidden_dim, label_size)
         # self.hidden = self.init_hidden()
         self.attention_layer = SoftDotAttention(hidden_dim)
-        self.last_layer = nn.Linear(hidden_dim, label_size * 100)
+        self.label_size = label_size
+        self.expand_size = 100
+        self.expand_layer = nn.Linear(hidden_dim, label_size * self.expand_size)
+        self.label_max_list = []
+        for _ in range(label_size):
+            self.label_max_list.append(nn.Linear(self.expand_size, 2).cuda())
         # loss
         #weight_mask = torch.ones(vocab_size).cuda()
         #weight_mask[word2id['<pad>']] = 0
@@ -71,9 +76,15 @@ class AttentionLSTMClassifier(nn.Module):
         out, att = self.attention_layer(hidden, lstm_out)
 
         # global attention
-        y_pred = self.hidden2label(out) # lstm_out[:, -1:].squeeze(1)
+        # y_pred = self.hidden2label(out) # lstm_out[:, -1:].squeeze(1)
+        expand = self.expand_layer(out).view(-1, self.label_size, self.expand_size)
+        sm_list = []
+        for i in range(self.label_size):
+            sm_list.append(F.softmax(self.label_max_list[i](expand[:, i, :]), dim=1))
+
+        y_logit = torch.cat(sm_list, dim=1)
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
-        return y_pred
+        return y_logit
 
     def load_glove_embedding(self, id2word):
         """
