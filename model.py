@@ -107,4 +107,4 @@ class AttentionLSTMClassifier(nn.Module):
         emb = np.eye(self.vocab_size)
         emb[word2id['<pad>']] = np.zeros([self.vocab_size])
         self.embeddings.weight = nn.Parameter(torch.FloatTensor(emb))
-        # self.word_embedding.weight.requires_grad = False
+        self.embeddings.weight.requires_grad = False
