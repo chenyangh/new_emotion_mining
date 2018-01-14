@@ -33,7 +33,7 @@ class DataSet(Dataset):
         with open(__fold_path, 'r') as f:
             for line in f.readlines():
                 tokens = line.split('\t')
-                tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[1].split()]
+                tmp = [self.word2id[x] for x in tokens[1].split() if x in self.word2id]
                 if len(tmp) > self.pad_len:
                     tmp = tmp[: self.pad_len]
                 self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
@@ -69,13 +69,14 @@ def build_vocab(fold_path, use_unk=True):
             n += 1
     return word2id, id2word
 
+
 if __name__ == '__main__':
     fold_path = 'data/Folds_9_Emotions/fold_0'
     pad_len = 30
     num_labels = 9
     batch_size = 400
     hidden_dim = 600
-    word2id, id2word = build_vocab(fold_path, use_unk=True)
+    word2id, id2word = build_vocab(fold_path, use_unk=False)
     vocab_size = len(word2id)
     embedding_dim = len(word2id)
 

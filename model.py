@@ -10,6 +10,7 @@ import torch
 from torch.autograd import Variable
 import os
 
+
 class SoftDotAttention(nn.Module):
     """Soft Dot Attention.
     Ref: http://www.aclweb.org/anthology/D15-1166

@@ -50,7 +50,6 @@ class DataSet(Dataset):
         return torch.LongTensor(self.data[idx]), torch.FloatTensor(self.label[idx])
 
 
-
 def build_vocab(fold_path, vocab_size, use_unk=True):
     word_count = {}
     word2id = {}
@@ -88,7 +87,7 @@ def build_vocab(fold_path, vocab_size, use_unk=True):
 if __name__ == '__main__':
     fold_path = 'data/Folds/fold_0'
     vocab_size = 20000
-    pad_len = 30
+    pad_len = 50
     num_labels = 16
     batch_size = 400
     embedding_dim = 200
