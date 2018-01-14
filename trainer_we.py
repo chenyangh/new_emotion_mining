@@ -11,6 +11,8 @@ from data_helper import build_vocab
 from model import AttentionLSTMClassifier
 from torch.utils.data import Dataset, DataLoader
 from early_stop import EarlyStop
+from measurement import CalculateFM
+import numpy as np
 
 class DataSet(Dataset):
     def __init__(self, __fold_path, __pad_len, __word2id, __num_labels, max_size=None):
@@ -32,6 +34,8 @@ class DataSet(Dataset):
             for line in f.readlines():
                 tokens = line.split('\t')
                 tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[1].split()]
+                if len(tmp) > self.pad_len:
+                    tmp = tmp[: self.pad_len]
                 self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
                 tmp2 = tokens[2:]
                 a_label = [0] * self.num_label
@@ -47,10 +51,10 @@ class DataSet(Dataset):
 
 
 if __name__ == '__main__':
-    fold_path = 'data/Folds/fold_0'
+    fold_path = 'data/Folds_9_Emotions/fold_0'
     vocab_size = 20000
     pad_len = 30
-    num_labels = 16
+    num_labels = 9
     batch_size = 400
     embedding_dim = 200
     hidden_dim = 600
@@ -61,31 +65,51 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
     test_data = DataSet(os.path.join(fold_path, 'test.csv'), pad_len, word2id, num_labels)
-    test_loader = DataLoader(train_data, batch_size=batch_size)
+    test_loader = DataLoader(test_data, batch_size=batch_size)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
-                                    num_labels, batch_size).cuda()
+                                    num_labels, batch_size)
+    model.load_glove_embedding(id2word)
+    model.cuda()
 
     optimizer = optim.Adam(model.parameters())
     loss_criterion = nn.BCELoss()
-    for _ in range(20):
+    for epoch in range(20):
+        print('Epoch:', epoch, '===================================')
         train_loss = 0
         for i, (data, label) in enumerate(train_loader):
             y_pred = model(Variable(data).cuda())
             optimizer.zero_grad()
-            loss = loss_criterion(F.sigmoid(y_pred), Variable(label).cuda())
+            loss = loss_criterion(y_pred, Variable(label).cuda())
             loss.backward()
             optimizer.step()
             train_loss += loss.data[0]
-        print("Train Loss: ", train_loss)
-
+        pred_list = []
+        gold_list = []
         test_loss = 0
         for i, (data, label) in enumerate(test_loader):
             y_pred = model(Variable(data, volatile=True).cuda())
-            loss = loss_criterion(F.sigmoid(y_pred), Variable(label, volatile=True).cuda())
+            loss = loss_criterion(y_pred, Variable(label, volatile=True).cuda())
             test_loss += loss.data[0]
+            pred_list.append(y_pred.data.cpu().numpy())
+            gold_list.append(label.numpy())
+
+        threshold = 0.2
+        print(threshold, ":",
+              CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
+        threshold = 0.25
+        print(threshold, ":",
+              CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
+        threshold = 0.18
+        print(threshold, ":",
+              CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
+        threshold = 0.3
+        print(threshold, ":",
+              CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
+
+        print("Train Loss: ", train_loss, " Evaluation: ", test_loss)
+
         es.new_loss(test_loss)
         if es.if_stop():
-            'Start over fitting'
+            print('Start over fitting')
             break
-        print("Evaluation: ", test_loss)

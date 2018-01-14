@@ -8,13 +8,19 @@ See the function call
 import numpy as np
 
 
-def CalculateFM(preLabels, targetLabels):
+def CalculateFM(preLabels, targetLabels, threshold=None):
     # print('PreLabels:', preLabels)
     # print('targetLabels:', targetLabels)
 
+
+
+    if threshold is not None:
+        new_pred = [1 & (v > threshold) for v in preLabels]
+        preLabels = np.array(new_pred)
+
+
     Pre_Labels = np.transpose(np.array(preLabels))
     Test_Target = np.transpose(np.array(targetLabels))
-
     # print('Array of Pre_Labels:',Pre_Labels)
     # print('Array of Test_Target:', Test_Target)
 
@@ -26,7 +32,7 @@ def CalculateFM(preLabels, targetLabels):
     m = dim[0]
     n = dim[1]
 
-    print('dim:', m, n)
+    # print('dim:', m, n)
 
     a = np.zeros(m)
     b = np.zeros(m)
@@ -52,7 +58,7 @@ def CalculateFM(preLabels, targetLabels):
     print('c', c)
     """
 
-    print("F-measures:")
+    # print("F-measures:")
 
     Macro_Fmeasure = np.sum(F_temp) / m
     Micro_Fmeasure = (2 * np.sum(a)) / (np.sum(b) + np.sum(c))

@@ -46,12 +46,13 @@ class AttentionLSTMClassifier(nn.Module):
         self.batch_size = batch_size
         self.pad_token_src = word2id['<pad>']
         self.vocab_size = vocab_size
+        self.embedding_dim = embedding_dim
         self.embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx=self.pad_token_src)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
         self.hidden2label = nn.Linear(hidden_dim, label_size)
         # self.hidden = self.init_hidden()
         self.attention_layer = SoftDotAttention(hidden_dim)
-        self.last_layer = nn.Linear(hidden_dim, label_size * 100)
+        # self.last_layer = nn.Linear(hidden_dim, label_size * 100)
         # loss
         #weight_mask = torch.ones(vocab_size).cuda()
         #weight_mask[word2id['<pad>']] = 0
@@ -71,16 +72,17 @@ class AttentionLSTMClassifier(nn.Module):
         out, att = self.attention_layer(hidden, lstm_out)
 
         # global attention
-        y_pred = self.hidden2label(out) # lstm_out[:, -1:].squeeze(1)
+        y_pred = self.hidden2label(lstm_out[:, -1:].squeeze(1))  # lstm_out[:, -1:].squeeze(1)
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
-        return y_pred
+
+        return F.softmax(y_pred, dim=1)
 
     def load_glove_embedding(self, id2word):
         """
         :param id2word:
         :return:
         """
-        emb = np.zeros((self.vocab_size, self.emb_dim))
+        emb = np.zeros((self.vocab_size, self.embedding_dim))
         with open('feature/glove.twitter.200d.pkl', 'br') as f:
             emb_dict = pickle.load(f)
 
@@ -91,10 +93,10 @@ class AttentionLSTMClassifier(nn.Module):
                 emb[idx] = vec
             else:
                 if word == '<pad>':
-                    emb[idx] = np.zeros([self.emb_dim])
+                    emb[idx] = np.zeros([self.embedding_dim])
                 else:
-                    emb[idx] = np.random.uniform(-1, 1, self.emb_dim)
-        self.embedding.weight = nn.Parameter(torch.FloatTensor(emb))
+                    emb[idx] = np.random.uniform(-1, 1, self.embedding_dim)
+        self.embeddings.weight = nn.Parameter(torch.FloatTensor(emb))
 
     def load_bog_embedding(self, word2id):
         """"
