@@ -85,10 +85,14 @@ def build_vocab(fold_path, vocab_size, use_unk=True):
 
 
 if __name__ == '__main__':
-    fold_path = 'data/Folds/fold_0'
+    if False:
+        fold_path = 'data/Folds_9_Emotions/fold_0'
+        num_labels = 9
+    else:
+        fold_path = 'data/Folds/fold_0'
+        num_labels = 16
     vocab_size = 20000
-    pad_len = 50
-    num_labels = 16
+    pad_len = 30
     batch_size = 400
     embedding_dim = 200
     hidden_dim = 600
@@ -128,19 +132,19 @@ if __name__ == '__main__':
             pred_list.append(y_pred.data.cpu().numpy())
             gold_list.append(label.numpy())
 
-        threshold = 0.16
-        print(threshold, ":",
-              CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
-        threshold = 0.18
+        threshold = 0.4
         print(threshold, ":",
               CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
         threshold = 0.2
         print(threshold, ":",
               CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
-        threshold = 0.22
+        threshold = 0.02
         print(threshold, ":",
               CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
-        threshold = 0.14
+        threshold = 0.06
+        print(threshold, ":",
+              CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
+        threshold = 0.04
         print(threshold, ":",
               CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold))
 
