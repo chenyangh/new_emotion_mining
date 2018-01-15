@@ -27,13 +27,16 @@ class DataSet(Dataset):
         self.data = []
         self.label = []
         self.num_label = __num_labels
+        self.seq_len = []
         self.read_data(__fold_path)
+        assert len(self.seq_len) == len(self.data) == len(self.label)
 
     def read_data(self, __fold_path):
         with open(__fold_path, 'r') as f:
             for line in f.readlines():
                 tokens = line.split('\t')
                 tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[1].split()]
+                self.seq_len.append(len(tmp) if len(tmp) < self.pad_len else self.pad_len)
                 if len(tmp) > self.pad_len:
                     tmp = tmp[: self.pad_len]
                 self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
@@ -47,7 +50,7 @@ class DataSet(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return torch.LongTensor(self.data[idx]), torch.FloatTensor(self.label[idx])
+        return torch.LongTensor(self.data[idx]), torch.LongTensor([self.seq_len[idx]]), torch.FloatTensor(self.label[idx])
 
 
 def build_vocab(fold_path, vocab_size, use_unk=True):
@@ -84,8 +87,15 @@ def build_vocab(fold_path, vocab_size, use_unk=True):
     return word2id, id2word
 
 
+def sort_batch(batch, ys, lengths):
+    seq_lengths, perm_idx = lengths.sort(0, descending=True)
+    seq_tensor = batch[perm_idx]
+    targ_tensor = ys[perm_idx]
+    return seq_tensor, targ_tensor, seq_lengths
+
+
 if __name__ == '__main__':
-    if False:
+    if True:
         fold_path = 'data/Folds_9_Emotions/fold_0'
         num_labels = 9
     else:
@@ -115,8 +125,9 @@ if __name__ == '__main__':
     for epoch in range(20):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
-        for i, (data, label) in enumerate(train_loader):
-            y_pred = model(Variable(data).cuda())
+        for i, (data, seq_len, label) in enumerate(train_loader):
+            data, label, seq_len = sort_batch(data, label, seq_len.view(-1))
+            y_pred = model(Variable(data).cuda(), seq_len.numpy())
             optimizer.zero_grad()
             loss = loss_criterion(y_pred, Variable(label).cuda())
             loss.backward()
@@ -125,8 +136,9 @@ if __name__ == '__main__':
         pred_list = []
         gold_list = []
         test_loss = 0
-        for i, (data, label) in enumerate(test_loader):
-            y_pred = model(Variable(data, volatile=True).cuda())
+        for i, (data, seq_len, label) in enumerate(test_loader):
+            data, label, seq_len = sort_batch(data, label, seq_len.view(-1))
+            y_pred = model(Variable(data, volatile=True).cuda(), seq_len.numpy())
             loss = loss_criterion(y_pred, Variable(label, volatile=True).cuda())
             test_loss += loss.data[0]
             pred_list.append(y_pred.data.cpu().numpy())

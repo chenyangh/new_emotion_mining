@@ -12,12 +12,9 @@ def CalculateFM(preLabels, targetLabels, threshold=None):
     # print('PreLabels:', preLabels)
     # print('targetLabels:', targetLabels)
 
-
-
     if threshold is not None:
         new_pred = [1 & (v > threshold) for v in preLabels]
         preLabels = np.array(new_pred)
-
 
     Pre_Labels = np.transpose(np.array(preLabels))
     Test_Target = np.transpose(np.array(targetLabels))

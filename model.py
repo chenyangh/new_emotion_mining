@@ -99,21 +99,24 @@ class AttentionLSTMClassifier(nn.Module):
         c0 = Variable(torch.zeros(1, batch_size, self.hidden_dim), requires_grad=False).cuda()
         return (h0, c0)
 
-    def forward(self, x):
+    def forward(self, x, seq_len):
         embedded = self.embeddings(x)
-        # = embeds.view(len(sentence), self.batch_size, -1)
+
+        packed_input = nn.utils.rnn.pack_padded_sequence(embedded, seq_len, batch_first=True)
         hidden = self.init_hidden(x)
-        lstm_out, hidden = self.lstm(embedded, hidden)
+        packed_output, hidden = self.lstm(packed_input, hidden)
+        lstm_out = nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)
 
         # global attention
-        if False:
-            y_pred = self.hidden2label(lstm_out[:, -1:].squeeze(1))  # lstm_out[:, -1:].squeeze(1)
+        if True:
+            y_pred = self.hidden2label(lstm_out[0].gather(1,
+                      Variable(torch.LongTensor(seq_len)).view(-1, 1, 1).expand(lstm_out[0].size(0), 1, lstm_out[0].size(2))))  # lstm_out[:, -1:].squeeze(1)
         else:
-            out, att = self.attention_layer(lstm_out[:, -1:].squeeze(1), lstm_out)
+            out, att = self.attention_layer(lstm_out[0][:, -1:].squeeze(1), lstm_out[0])
             y_pred = self.hidden2label(out)
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
 
-        return F.softmax(F.selu(y_pred), dim=1)
+        return F.softmax(y_pred, dim=1)
 
     def load_glove_embedding(self, id2word):
         """
