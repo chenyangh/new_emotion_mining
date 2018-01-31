@@ -198,17 +198,21 @@ if __name__ == '__main__':
     emotions = ['anger', 'fear', 'joy', 'love', 'sadness', 'surprise', 'thankfulness', 'disgust', 'guilt',
                      'betrayed', 'frustrated', 'hopeless', 'lonely', 'rejected', 'schadenfreude', 'self_loath']
 
-    pred_list, gold_list = one_fold(0, is_nine_folds=False)
+    # pred_list, gold_list = one_fold(0, is_nine_folds=False)
+
 
     import pickle
-    with open('cnf_data.pkl', 'bw') as f:
-        pickle.dump((pred_list, gold_list), f)
-    # pred_list = np.concatenate(pred_list, axis=0)
-    # gold_list = np.concatenate(gold_list, axis=0)
-    # pred_list = [1 & (v > 0.3) for v in pred_list]
-    # pred_list = np.array(pred_list)
-    #
-    # cnf_matrix = confusion_matrix(pred_list, gold_list)
+    # with open('cnf_data.pkl', 'bw') as f:
+    #     pickle.dump((pred_list, gold_list), f)
+    with open('cnf_data.pkl', 'br') as f:
+        pred_list, gold_list = pickle.load(f)
+
+
+    pred_list = np.concatenate(pred_list, axis=0)
+    gold_list = np.concatenate(gold_list, axis=0)
+    pred_list = [1 & (v > 0.3) for v in pred_list]
+    pred_list = np.array(pred_list)
+    cnf_matrix = confusion_matrix(pred_list, gold_list)
     # plt.figure()
     # plot_confusion_matrix(cnf_matrix, classes=emotions, normalize=True,
     #                   title='Model 1.1 confusion matrix')
