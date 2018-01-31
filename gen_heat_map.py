@@ -201,7 +201,7 @@ if __name__ == '__main__':
     pred_list, gold_list = one_fold(0, is_nine_folds=False)
 
     import pickle
-    with open('cnf_data.pkl') as f:
+    with open('cnf_data.pkl', 'bw') as f:
         pickle.dump((pred_list, gold_list), f)
     # pred_list = np.concatenate(pred_list, axis=0)
     # gold_list = np.concatenate(gold_list, axis=0)
