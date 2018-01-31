@@ -203,13 +203,13 @@ if __name__ == '__main__':
     import pickle
     with open('cnf_data.pkl') as f:
         pickle.dump((pred_list, gold_list), f)
-    pred_list = np.concatenate(pred_list, axis=0)
-    gold_list = np.concatenate(gold_list, axis=0)
-    pred_list = [1 & (v > 0.3) for v in pred_list]
-    pred_list = np.array(pred_list)
-
-    cnf_matrix = confusion_matrix(pred_list, gold_list)
-    plt.figure()
-    plot_confusion_matrix(cnf_matrix, classes=emotions, normalize=True,
-                      title='Model 1.1 confusion matrix')
-    plt.show()
+    # pred_list = np.concatenate(pred_list, axis=0)
+    # gold_list = np.concatenate(gold_list, axis=0)
+    # pred_list = [1 & (v > 0.3) for v in pred_list]
+    # pred_list = np.array(pred_list)
+    #
+    # cnf_matrix = confusion_matrix(pred_list, gold_list)
+    # plt.figure()
+    # plot_confusion_matrix(cnf_matrix, classes=emotions, normalize=True,
+    #                   title='Model 1.1 confusion matrix')
+    # plt.show()
