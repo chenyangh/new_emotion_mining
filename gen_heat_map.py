@@ -181,22 +181,15 @@ def plot_confusion_matrix(cm, classes,
 
 
 def confusion_matrix(pred_list, gold_list):
-    def pred_count(preds):
-        my_dict = {}
-        for i in range(9):
-            my_dict[i] = 0
-        for item in preds:
-            my_dict[item] += 1
+    assert gold_list.shape == pred_list.shape
+    m, n = pred_list.shape
 
-        return my_dict
+    for i in range(m):
+        for j in range(n):
+            if pred_list()
 
 
     cm = np.zeros([len(emotions), len(emotions)])
-    for i, emo in enumerate(emotions):
-        preds = df[emo]
-        my_dict = pred_count(preds)
-        cm[i, :] = np.asarray([my_dict[x] for x in range(len(emotions))], dtype=np.int64)
-    return cm
 
 
 if __name__ == '__main__':
@@ -207,8 +200,16 @@ if __name__ == '__main__':
 
     pred_list, gold_list = one_fold(0, is_nine_folds=False)
 
+    import pickle
+    with open('cnf_data.pkl') as f:
+        pickle.dump((pred_list, gold_list), f)
     pred_list = np.concatenate(pred_list, axis=0)
     gold_list = np.concatenate(gold_list, axis=0)
     pred_list = [1 & (v > 0.3) for v in pred_list]
-    preLabels = np.array(pred_list)
+    pred_list = np.array(pred_list)
 
+    cnf_matrix = confusion_matrix(pred_list, gold_list)
+    plt.figure()
+    plot_confusion_matrix(cnf_matrix, classes=emotions, normalize=True,
+                      title='Model 1.1 confusion matrix')
+    plt.show()
