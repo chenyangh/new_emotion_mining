@@ -94,10 +94,11 @@ def one_fold(fold_int, is_nine_folds):
 
     pad_len = 30
     batch_size = 64
-    hidden_dim = 300
+    hidden_dim = 600
+    embedding_dim = 200
+
     word2id, id2word = build_vocab(fold_path, use_unk=True)
     vocab_size = len(word2id)
-    embedding_dim = len(word2id)
 
     es = EarlyStop(2)
     train_data = DataSet(os.path.join(fold_path, 'train.csv'), pad_len, word2id, num_labels)

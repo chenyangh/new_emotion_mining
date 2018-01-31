@@ -190,18 +190,20 @@ class AttentionLSTMClassifier(nn.Module):
         emb = np.zeros((self.vocab_size, self.embedding_dim))
         with open('feature/glove.twitter.200d.pkl', 'br') as f:
             emb_dict = pickle.load(f)
-
+        num_found = 0
         for idx in range(self.vocab_size):
             word = id2word[idx]
-            if word in emb_dict:
-                vec = emb_dict.syn0[emb_dict[word].index]
+            if word == '<pad>':
+                emb[idx] = np.zeros([self.embedding_dim])
+
+            elif word in emb_dict:
+                vec = emb_dict[word]
                 emb[idx] = vec
+                num_found += 1
             else:
-                if word == '<pad>':
-                    emb[idx] = np.zeros([self.embedding_dim])
-                else:
-                    emb[idx] = np.random.uniform(-1, 1, self.embedding_dim)
+                emb[idx] = np.random.uniform(-1, 1, self.embedding_dim)
         self.embeddings.weight = nn.Parameter(torch.FloatTensor(emb))
+        print(num_found, 'of', self.vocab_size, 'found')
 
     def load_bog_embedding(self, word2id):
         """"
