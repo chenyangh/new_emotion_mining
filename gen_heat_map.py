@@ -183,10 +183,10 @@ def plot_confusion_matrix(cm, classes,
 def confusion_matrix(pred_list, gold_list):
     assert gold_list.shape == pred_list.shape
     m, n = pred_list.shape
-
-    for i in range(m):
-        for j in range(n):
-            if pred_list()
+    #
+    # for i in range(m):
+    #     for j in range(n):
+    #         if pred_list()
 
 
     cm = np.zeros([len(emotions), len(emotions)])
