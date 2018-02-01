@@ -146,7 +146,7 @@ def one_fold(fold_int, is_nine_folds):
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
-                          title='Confusion matrix',
+                          title=None,
                           cmap=plt.cm.Blues):
     """
     This function prints and plots the confusion matrix.
@@ -156,18 +156,19 @@ def plot_confusion_matrix(cm, classes,
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
         print("Normalized confusion matrix")
     else:
+        cm = cm.astype('float')
         print('Confusion matrix, without normalization')
 
     print(cm)
 
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
+    # plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45)
     plt.yticks(tick_marks, classes)
 
-    fmt = '.2f' if normalize else 'd'
+    fmt = '.2f' if normalize else '.0f'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt),
@@ -184,12 +185,16 @@ def confusion_matrix(pred_list, gold_list):
     assert gold_list.shape == pred_list.shape
     m, n = pred_list.shape
     #
-    # for i in range(m):
-    #     for j in range(n):
-    #         if pred_list()
-
-
     cm = np.zeros([len(emotions), len(emotions)])
+
+    for i in range(m):
+        pred_idx = np.where(pred_list[i] == 1)
+        gold_idx = np.where(gold_list[i] == 1)
+        for j in gold_idx[0]:
+            for k in pred_idx[0]:
+                cm[j][k] += 1
+                break
+    return cm
 
 
 if __name__ == '__main__':
@@ -198,22 +203,37 @@ if __name__ == '__main__':
     emotions = ['anger', 'fear', 'joy', 'love', 'sadness', 'surprise', 'thankfulness', 'disgust', 'guilt',
                      'betrayed', 'frustrated', 'hopeless', 'lonely', 'rejected', 'schadenfreude', 'self_loath']
 
-    # pred_list, gold_list = one_fold(0, is_nine_folds=False)
+    emotions = ['anger', 'fear', 'joy', 'love', 'sadness', 'surprise', 'thankfulness', 'disgust', 'guilt']
+    cnf_matrix_list = []
+    cm = np.zeros([len(emotions), len(emotions)])
 
+    for i in range(5):
+        pred_list, gold_list = one_fold(i, is_nine_folds=True)
 
-    import pickle
-    # with open('cnf_data.pkl', 'bw') as f:
-    #     pickle.dump((pred_list, gold_list), f)
-    with open('cnf_data.pkl', 'br') as f:
-        pred_list, gold_list = pickle.load(f)
+        import pickle
+        if True:
+            with open('cnf_data.pkl', 'bw') as f:
+                pickle.dump((pred_list, gold_list), f)
+        else:
+            with open('cnf_data.pkl', 'br') as f:
+                pred_list, gold_list = pickle.load(f)
 
+        pred_list = np.concatenate(pred_list, axis=0)
+        gold_list = np.concatenate(gold_list, axis=0)
+        #pred_list = [1 & (v > 0.25) for v in pred_list]
+        tmp_list = []
+        for v in pred_list:
+            tmp = np.zeros([len(emotions)])
+            tmp[np.argmax(v)] = 1
+            tmp_list.append(tmp)
+        pred_list = np.array(tmp_list)
+        cnf_matrix = confusion_matrix(pred_list, gold_list)
+        cnf_matrix_list.append(cnf_matrix)
 
-    pred_list = np.concatenate(pred_list, axis=0)
-    gold_list = np.concatenate(gold_list, axis=0)
-    pred_list = [1 & (v > 0.3) for v in pred_list]
-    pred_list = np.array(pred_list)
-    cnf_matrix = confusion_matrix(pred_list, gold_list)
-    # plt.figure()
-    # plot_confusion_matrix(cnf_matrix, classes=emotions, normalize=True,
-    #                   title='Model 1.1 confusion matrix')
-    # plt.show()
+    for cnf_tmp in cnf_matrix_list:
+        cm += cnf_tmp
+
+    cm /= 5
+    plt.figure()
+    plot_confusion_matrix(cnf_matrix, classes=emotions, normalize=True)
+    plt.show()
