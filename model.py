@@ -180,7 +180,7 @@ class AttentionLSTMClassifier(nn.Module):
             y_pred = F.relu(self.hidden2label(out))
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
 
-        return F.softmax(y_pred, dim=1)
+        return y_pred
 
     def load_glove_embedding(self, id2word):
         """

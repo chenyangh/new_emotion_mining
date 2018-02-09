@@ -168,7 +168,7 @@ def plot_confusion_matrix(cm, classes,
     plt.xticks(tick_marks, classes, rotation=45)
     plt.yticks(tick_marks, classes)
 
-    fmt = '.2f' if normalize else '.0f'
+    fmt = '.2f' if normalize else '.1f'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt),
@@ -235,5 +235,5 @@ if __name__ == '__main__':
 
     cm /= 5
     plt.figure()
-    plot_confusion_matrix(cnf_matrix, classes=emotions, normalize=True)
+    plot_confusion_matrix(cm, classes=emotions, normalize=True)
     plt.show()

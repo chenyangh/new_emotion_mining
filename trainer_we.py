@@ -13,6 +13,7 @@ from early_stop import EarlyStop
 from measurement import CalculateFM
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import *
 
 
 class DataSet(Dataset):
@@ -29,6 +30,7 @@ class DataSet(Dataset):
         self.label = []
         self.num_label = __num_labels
         self.seq_len = []
+        self.only_single = True
         self.read_data(__fold_path)
         assert len(self.seq_len) == len(self.data) == len(self.label)
 
@@ -36,6 +38,9 @@ class DataSet(Dataset):
         with open(__fold_path, 'r') as f:
             for line in f.readlines():
                 tokens = line.split('\t')
+                if self.only_single:
+                    if tokens[0][0] != 's':
+                        continue
                 tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[1].split()]
                 self.seq_len.append(len(tmp) if len(tmp) < self.pad_len else self.pad_len)
                 if len(tmp) > self.pad_len:
@@ -124,7 +129,7 @@ def one_fold(fold_int, is_nine_folds):
     model.cuda()
 
     optimizer = optim.Adam(model.parameters())
-    loss_criterion = nn.BCELoss()
+    loss_criterion = nn.MSELoss()
     for epoch in range(4):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
@@ -169,6 +174,7 @@ if __name__ == '__main__':
         f_ma, f_mi = one_fold(i, is_nine_folds=True)
         f_ma_list.append(f_ma)
         f_mi_list.append(f_mi)
+        print(f_ma, f_mi)
 
     f_ma_np_9 = np.asarray(f_ma_list).mean(axis=0)
     f_mi_np_9 = np.asarray(f_mi_list).mean(axis=0)
