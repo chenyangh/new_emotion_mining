@@ -130,7 +130,7 @@ def one_fold(fold_int, is_nine_folds):
     model.cuda()
 
     optimizer = optim.Adam(model.parameters())
-    loss_criterion = nn.MSELoss()
+    loss_criterion = nn.BCELoss()
     for epoch in range(4):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
@@ -241,13 +241,14 @@ if __name__ == '__main__':
     for cnf_tmp in cnf_matrix_list:
         cm += cnf_tmp
 
+    measure_9_emo /= 5
+    print(measure_9_emo)
+
     cm /= 5
     plt.figure()
     plot_confusion_matrix(cm, classes=emotions, normalize=False)
     plt.show()
 
-    measure_9_emo /= 5
-    print(measure_9_emo)
 
 
 

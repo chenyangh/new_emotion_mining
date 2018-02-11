@@ -134,9 +134,9 @@ class AttentionLSTMClassifier(nn.Module):
         # self.hidden = self.init_hidden()
         if self.bidirectional:
             self.hidden2label = nn.Linear(hidden_dim*2, label_size)
-            self.attention_layer = SoftDotAttention(hidden_dim*2)
+            self.attention_layer = SelfAttention(hidden_dim*2)
         else:
-            self.attention_layer = SoftDotAttention(hidden_dim)
+            self.attention_layer = SelfAttention(hidden_dim)
             self.hidden2label = nn.Linear(hidden_dim, label_size)
 
         # self.last_layer = nn.Linear(hidden_dim, label_size * 100)
@@ -164,25 +164,25 @@ class AttentionLSTMClassifier(nn.Module):
         lstm_out, unpacked_len = nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)
 
         # global attention
-        if True:
+        if False:
             output = lstm_out
             seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
             seq_len = Variable(seq_len - 1).cuda()
             output_extracted = torch.gather(output, 1, seq_len).squeeze(1)
             y_pred = F.relu(self.hidden2label(output_extracted))  # lstm_out[:, -1:].squeeze(1)
         else:
-            # output = lstm_out
-            # seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
-            # seq_len = Variable(seq_len - 1).cuda()
-            # output_extracted = torch.gather(output, 1, seq_len).squeeze(1) #
-            #out, att = self.attention_layer(output_extracted, lstm_out)
+            output = lstm_out
+            seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
+            seq_len = Variable(seq_len - 1).cuda()
+            output_extracted = torch.gather(output, 1, seq_len).squeeze(1) #
+            # out, att = self.attention_layer(output_extracted, lstm_out)
+            out, att = self.attention_layer(lstm_out, unpacked_len)
 
-            out, att = self.attention_layer(lstm_out[:, -1:].squeeze(1), lstm_out)
-            # out, att = self.attention_layer(lstm_out, unpacked_len)
+            # out, att = self.attention_layer(lstm_out[:, -1:].squeeze(1), lstm_out)
             y_pred = F.relu(self.hidden2label(out))
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
 
-        return y_pred
+        return F.softmax(y_pred)
 
     def load_glove_embedding(self, id2word):
         """
