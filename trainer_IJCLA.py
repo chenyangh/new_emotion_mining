@@ -110,11 +110,11 @@ def one_fold(fold_int, is_nine_folds):
         fold_path = 'data/Folds/fold_' + fold_id
         num_labels = 16
 
-    vocab_size = 5000
+    vocab_size = 20000
     pad_len = 30
     batch_size = 64
     embedding_dim = 200
-    hidden_dim = 600
+    hidden_dim = 800
 
     es = EarlyStop(2)
     word2id, id2word = build_vocab(fold_path, vocab_size, use_unk=True)
@@ -130,7 +130,7 @@ def one_fold(fold_int, is_nine_folds):
     model.cuda()
 
     optimizer = optim.Adam(model.parameters())
-    loss_criterion = nn.BCELoss()
+    loss_criterion = nn.MSELoss()
     for epoch in range(4):
         print('Epoch:', epoch, '===================================')
         train_loss = 0

@@ -31,10 +31,10 @@ class SoftDotAttention(nn.Module):
         input: batch x dim
         context: batch x sourceL x dim
         """
-        target = self.linear_in(context).unsqueeze(2)  # batch x dim x 1
-        target = F.tanh(target)
+        target = self.linear_in(input).unsqueeze(2)  # batch x dim x 1
+        target = F.relu(target)
         # Get attention
-        attn = torch.bmm(target, input).squeeze(2)  # batch x sourceL
+        attn = torch.bmm(context, target).squeeze(2)  # batch x sourceL
         attn = F.softmax(attn)
         attn3 = attn.view(attn.size(0), 1, attn.size(1))  # batch x 1 x sourceL
 
@@ -130,7 +130,7 @@ class AttentionLSTMClassifier(nn.Module):
         self.embedding_dim = embedding_dim
         self.bidirectional = True
         self.embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx=self.pad_token_src)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, bidirectional=self.bidirectional, dropout=0.7)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, bidirectional=self.bidirectional, dropout=0.75)
         # self.hidden = self.init_hidden()
         if self.bidirectional:
             self.hidden2label = nn.Linear(hidden_dim*2, label_size)
@@ -164,23 +164,25 @@ class AttentionLSTMClassifier(nn.Module):
         lstm_out, unpacked_len = nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)
 
         # global attention
-        if False:
+        if True:
             output = lstm_out
             seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
             seq_len = Variable(seq_len - 1).cuda()
             output_extracted = torch.gather(output, 1, seq_len).squeeze(1)
             y_pred = F.relu(self.hidden2label(output_extracted))  # lstm_out[:, -1:].squeeze(1)
         else:
-            output = lstm_out
-            seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
-            seq_len = Variable(seq_len - 1).cuda()
-            output_extracted = torch.gather(output, 1, seq_len).squeeze(1) # lstm_out[:, -1:].squeeze(1)
-            out, att = self.attention_layer(output_extracted, lstm_out)
+            # output = lstm_out
+            # seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
+            # seq_len = Variable(seq_len - 1).cuda()
+            # output_extracted = torch.gather(output, 1, seq_len).squeeze(1) #
+            #out, att = self.attention_layer(output_extracted, lstm_out)
+
+            out, att = self.attention_layer(lstm_out[:, -1:].squeeze(1), lstm_out)
             # out, att = self.attention_layer(lstm_out, unpacked_len)
             y_pred = F.relu(self.hidden2label(out))
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
 
-        return F.softmax(y_pred)
+        return y_pred
 
     def load_glove_embedding(self, id2word):
         """
