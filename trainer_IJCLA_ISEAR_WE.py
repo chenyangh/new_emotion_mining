@@ -224,6 +224,9 @@ if __name__ == '__main__':
     cnf_matrix_list = []
     cm = np.zeros([len(emotions), len(emotions)])
     measure_9_emo = np.zeros([3])
+    # load isear dataset
+    i
+
     for i in range(5):
         pred_list, gold_list = one_fold(i, is_nine_folds=True)
 
