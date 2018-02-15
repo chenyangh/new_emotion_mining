@@ -215,6 +215,21 @@ def confusion_matrix(pred_list, gold_list):
     return cm
 
 
+def isear_data():
+    from py_isear.isear_loader import IsearLoader
+    attributes = ['SIT']
+    target = ['EMOT']
+    loader = IsearLoader(attributes, target, True)
+    data = loader.load_isear('data/isear.csv')
+    txt = data.get_freetext_content()  # returns attributes
+    emo = data.get_target()  # returns target
+    return txt, emo
+
+
+def folds_creater():
+    pass
+
+
 if __name__ == '__main__':
     p_avg = 0
     r_avg = 0
@@ -224,8 +239,7 @@ if __name__ == '__main__':
     cnf_matrix_list = []
     cm = np.zeros([len(emotions), len(emotions)])
     measure_9_emo = np.zeros([3])
-    # load isear dataset
-    i
+
 
     for i in range(5):
         pred_list, gold_list = one_fold(i, is_nine_folds=True)
