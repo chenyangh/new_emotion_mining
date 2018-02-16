@@ -121,7 +121,7 @@ class SelfAttention(nn.Module):
 
 class AttentionLSTMClassifier(nn.Module):
     def __init__(self, embedding_dim, hidden_dim, vocab_size, word2id,
-                 label_size, batch_size, use_att=False):
+                 label_size, batch_size, use_att=True):
         super(AttentionLSTMClassifier, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size

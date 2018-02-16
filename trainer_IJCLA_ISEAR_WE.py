@@ -116,6 +116,7 @@ def sort_batch(batch, ys, lengths):
     return seq_tensor, targ_tensor, seq_lengths
 
 
+
 def one_fold(X_train, y_train, X_test, y_test):
     num_labels = 7
     vocab_size = 10000
@@ -224,12 +225,10 @@ def confusion_matrix(pred_list, gold_list):
     return cm
 
 
-def measure_per_emo(pred, gold):  # TODO
-
-    pass
-
-
-def fold_creator(X, y):  # TODO
+def one_vs_all_measure(gold, pred):
+    for i in range(9):
+        per_gold = gold[:, i]
+        per_pred = gold[:, i]
     pass
 
 
@@ -249,7 +248,7 @@ if __name__ == '__main__':
     kf = StratifiedKFold(n_splits=n_folds, shuffle=True)
     # kf = fold_creator(y)
 
-    for train_index, test_index  in kf.split(X, y):
+    for train_index, test_index in kf.split(X, y):
         X_train = [X[tmp] for tmp in train_index]
         X_test = [X[tmp] for tmp in test_index]
         y_train, y_test = y[train_index], y[test_index]
@@ -258,6 +257,8 @@ if __name__ == '__main__':
 
         pred_list = np.argmax(pred_list, axis=1)
         gold_list = np.argmax(gold_list, axis=1)
+
+        one_vs_all_measure(gold_list, pred_list)
 
         measure_9_emo[0] += precision_score(gold_list, pred_list, average='macro')
         measure_9_emo[1] += recall_score(gold_list, pred_list, average='macro')
