@@ -17,19 +17,8 @@ from sklearn.metrics import *
 import itertools
 
 
-def isear_data():
-    from py_isear.isear_loader import IsearLoader
-    attributes = ['SIT']
-    target = ['EMOT']
-    loader = IsearLoader(attributes, target, True)
-    data = loader.load_isear('data/isear.csv')
-    txt = data.get_freetext_content()  # returns attributes
-    emo = data.get_target()  # returns target
-    return txt, emo
-
-
 class DataSet(Dataset):
-    def __init__(self, __X, __y, __pad_len, __word2id, __num_labels, max_size=None, use_unk=True):
+    def __init__(self, __fold_path, __pad_len, __word2id, __num_labels, max_size=None):
 
         self.pad_len = __pad_len
         self.word2id = __word2id
@@ -43,33 +32,27 @@ class DataSet(Dataset):
         self.num_label = __num_labels
         self.seq_len = []
         self.only_single = True
-        self.use_unk = use_unk
-
-        self.read_data(__X, __y) # process data
+        self.read_data(__fold_path)
         assert len(self.seq_len) == len(self.data) == len(self.label)
 
-    def read_data(self, __X, __y):
-        assert len(__X) == len(__y)
-        num_empty_lines = 0
-        for X, y in zip(__X, __y):
-            tokens = X.split()
-            if self.use_unk:
-                tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens]
-            else:
-                tmp = [self.word2id[x] for x in tokens if x in self.word2id]
-            if len(tmp) == 0:
-                num_empty_lines += 1
-                continue
-            self.seq_len.append(len(tmp) if len(tmp) < self.pad_len else self.pad_len)
-            if len(tmp) > self.pad_len:
-                tmp = tmp[: self.pad_len]
-            self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
+    def read_data(self, __fold_path):
+        with open(__fold_path, 'r') as f:
+            for line in f.readlines():
+                tokens = line.split('\t')
+                if self.only_single:
+                    if tokens[0][0] != 's':
+                        continue
+                tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[1].split()]
+                self.seq_len.append(len(tmp) if len(tmp) < self.pad_len else self.pad_len)
+                if len(tmp) > self.pad_len:
+                    tmp = tmp[: self.pad_len]
+                self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
+                tmp2 = tokens[2:]
+                a_label = [0] * self.num_label
+                for item in tmp2:
+                    a_label[int(item)] = 1
+                self.label.append(a_label)
 
-            a_label = [0] * self.num_label
-            a_label[int(y)-1] = 1
-
-            self.label.append(a_label)
-        print(num_empty_lines, 'empty lines found')
     def __len__(self):
         return len(self.data)
 
@@ -77,35 +60,37 @@ class DataSet(Dataset):
         return torch.LongTensor(self.data[idx]), torch.LongTensor([self.seq_len[idx]]), torch.FloatTensor(self.label[idx])
 
 
-def build_vocab(X_train, vocab_size, use_unk=True):
+def build_vocab(fold_path, vocab_size, use_unk=True):
     word_count = {}
     word2id = {}
     id2word = {}
-    for line in X_train:
-        tokens = line.split()
-        for word in tokens:
-            if word in word_count:
-                word_count[word] += 1
-            else:
-                word_count[word] = 1
+    with open(os.path.join(fold_path, 'train.csv'), 'r') as f:
+        for line in f.readlines():
+            tokens = line.split('\t')
+            sent = tokens[1]
+            for word in sent.split():
+                if word in word_count:
+                    word_count[word] += 1
+                else:
+                    word_count[word] = 1
 
-    word_list = [x for x, _ in sorted(word_count.items(), key=lambda v: v[1], reverse=True)]
-    if len(word_count) < vocab_size:
-        raise Exception('Vocab less than requested!!!')
+        word_list = [x for x, _ in sorted(word_count.items(), key=lambda v: v[1], reverse=True)]
+        if len(word_count) < vocab_size:
+            raise Exception('Vocab less than requested!!!')
 
-    # add <pad> first
-    word2id['<pad>'] = 0
-    id2word[0] = '<pad>'
-    if use_unk:
-        word2id['<unk>'] = 1
-        id2word[1] = '<unk>'
-    n = len(word2id)
-    word_list = word_list[:vocab_size - n]
+        # add <pad> first
+        word2id['<pad>'] = 0
+        id2word[0] = '<pad>'
+        if use_unk:
+            word2id['<unk>'] = 1
+            id2word[1] = '<unk>'
+        n = len(word2id)
+        word_list = word_list[:vocab_size - n]
 
-    for word in word_list:
-        word2id[word] = n
-        id2word[n] = word
-        n += 1
+        for word in word_list:
+            word2id[word] = n
+            id2word[n] = word
+            n += 1
     return word2id, id2word
 
 
@@ -116,21 +101,27 @@ def sort_batch(batch, ys, lengths):
     return seq_tensor, targ_tensor, seq_lengths
 
 
-def one_fold(X_train, y_train, X_test, y_test):
-    num_labels = 7
-    vocab_size = 10000
+def one_fold(fold_int, is_nine_folds):
+    fold_id = str(fold_int)
+    if is_nine_folds:
+        fold_path = 'data/Folds_9_Emotions/fold_' + fold_id
+        num_labels = 9
+    else:
+        fold_path = 'data/Folds/fold_' + fold_id
+        num_labels = 16
+
+    vocab_size = 20000
     pad_len = 30
     batch_size = 64
     embedding_dim = 200
     hidden_dim = 800
-    __use_unk = False
-    es = EarlyStop(2)
-    word2id, id2word = build_vocab(X_train, vocab_size, use_unk=__use_unk)
 
-    train_data = DataSet(X_train, y_train, pad_len, word2id, num_labels, use_unk=__use_unk)
+    es = EarlyStop(2)
+    word2id, id2word = build_vocab(fold_path, vocab_size, use_unk=True)
+    train_data = DataSet(os.path.join(fold_path, 'train.csv'), pad_len, word2id, num_labels)
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
-    test_data = DataSet(X_test, y_test, pad_len, word2id, num_labels, use_unk=__use_unk)
+    test_data = DataSet(os.path.join(fold_path, 'test.csv'), pad_len, word2id, num_labels)
     test_loader = DataLoader(test_data, batch_size=batch_size)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
@@ -224,37 +215,17 @@ def confusion_matrix(pred_list, gold_list):
     return cm
 
 
-def measure_per_emo(pred, gold):  # TODO
-
-    pass
-
-
-def fold_creator(X, y):  # TODO
-    pass
-
-
 if __name__ == '__main__':
     p_avg = 0
     r_avg = 0
     f_avg = 0
-    emotions = ["joy", "fear", "anger", "sadness", "disgust", "shame", "guilt"]
-    from sklearn.model_selection import StratifiedKFold
-    X, y = isear_data()
-    y = np.asarray(y)
+    emotions = ['anger', 'fear', 'joy', 'love', 'sadness', 'surprise', 'thankfulness', 'disgust', 'guilt']
+
     cnf_matrix_list = []
     cm = np.zeros([len(emotions), len(emotions)])
     measure_9_emo = np.zeros([3])
-    n_folds = 5
-
-    kf = StratifiedKFold(n_splits=n_folds, shuffle=True)
-    # kf = fold_creator(y)
-
-    for train_index, test_index  in kf.split(X, y):
-        X_train = [X[tmp] for tmp in train_index]
-        X_test = [X[tmp] for tmp in test_index]
-        y_train, y_test = y[train_index], y[test_index]
-
-        pred_list, gold_list = one_fold(X_train, y_train, X_test, y_test)
+    for i in range(5):
+        pred_list, gold_list = one_fold(i, is_nine_folds=True)
 
         pred_list = np.argmax(pred_list, axis=1)
         gold_list = np.argmax(gold_list, axis=1)
@@ -262,6 +233,7 @@ if __name__ == '__main__':
         measure_9_emo[0] += precision_score(gold_list, pred_list, average='macro')
         measure_9_emo[1] += recall_score(gold_list, pred_list, average='macro')
         measure_9_emo[2] += f1_score(gold_list, pred_list, average='macro')
+
 
         cnf_matrix = confusion_matrix(pred_list, gold_list)
         cnf_matrix_list.append(cnf_matrix)

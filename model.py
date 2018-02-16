@@ -121,7 +121,7 @@ class SelfAttention(nn.Module):
 
 class AttentionLSTMClassifier(nn.Module):
     def __init__(self, embedding_dim, hidden_dim, vocab_size, word2id,
-                 label_size, batch_size):
+                 label_size, batch_size, use_att=False):
         super(AttentionLSTMClassifier, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
@@ -129,6 +129,7 @@ class AttentionLSTMClassifier(nn.Module):
         self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
         self.bidirectional = True
+        self.use_att = use_att
         self.embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx=self.pad_token_src)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, bidirectional=self.bidirectional, dropout=0.75)
         # self.hidden = self.init_hidden()
@@ -164,22 +165,24 @@ class AttentionLSTMClassifier(nn.Module):
         lstm_out, unpacked_len = nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)
 
         # global attention
-        if False:
+        if self.use_att:
+            output = lstm_out
+            seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
+            seq_len = Variable(seq_len - 1).cuda()
+            output_extracted = torch.gather(output, 1, seq_len).squeeze(1)  #
+            # out, att = self.attention_layer(output_extracted, lstm_out)
+            out, att = self.attention_layer(lstm_out, unpacked_len)
+            y_pred = F.relu(self.hidden2label(out))
+
+        else:
             output = lstm_out
             seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
             seq_len = Variable(seq_len - 1).cuda()
             output_extracted = torch.gather(output, 1, seq_len).squeeze(1)
             y_pred = F.relu(self.hidden2label(output_extracted))  # lstm_out[:, -1:].squeeze(1)
-        else:
-            output = lstm_out
-            seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
-            seq_len = Variable(seq_len - 1).cuda()
-            output_extracted = torch.gather(output, 1, seq_len).squeeze(1) #
-            # out, att = self.attention_layer(output_extracted, lstm_out)
-            out, att = self.attention_layer(lstm_out, unpacked_len)
+
 
             # out, att = self.attention_layer(lstm_out[:, -1:].squeeze(1), lstm_out)
-            y_pred = F.relu(self.hidden2label(out))
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
 
         return F.softmax(y_pred)
