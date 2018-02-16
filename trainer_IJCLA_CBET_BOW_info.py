@@ -60,21 +60,16 @@ class DataSet(Dataset):
         return torch.LongTensor(self.data[idx]), torch.LongTensor([self.seq_len[idx]]), torch.FloatTensor(self.label[idx])
 
 
-def build_vocab(fold_id, use_unk=False):
-    word_count = {}
+def build_vocab(fold_path, fold_id, use_unk=False):
     word2id = {}
     id2word = {}
     word_list = []
-    with open('data/Folds_9_Emotions/vocabs_inf_emot/vocab_'+str(fold_id)+'.txt', 'r') as f:
+    with open(fold_path + '/vocab_' + str(fold_id)+'.txt', 'r') as f:
         for line in f.readlines():
             word = line.strip()
 
-            if word in word_count:
-                word_count[word] += 1
-            else:
-                word_count[word] = 1
+            word_list.append(word)
 
-        word_list = [x for x, _ in sorted(word_count.items(), key=lambda v: v[1], reverse=True)]
         # add <pad> first
         word2id['<pad>'] = 0
         id2word[0] = '<pad>'

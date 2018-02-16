@@ -16,6 +16,10 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import *
 import itertools
 
+
+NUM_CLASS = 9
+
+
 class DataSet(Dataset):
     def __init__(self, __fold_path, __pad_len, __word2id, __num_labels, max_size=None):
 
@@ -120,7 +124,7 @@ def one_fold(fold_int, is_nine_folds):
     test_loader = DataLoader(test_data, batch_size=batch_size)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
-                                    num_labels, batch_size)
+                                    num_labels, batch_size, use_att=False)
     model.load_bog_embedding(word2id)
     model.cuda()
 
@@ -206,6 +210,23 @@ def confusion_matrix(pred_list, gold_list):
         cm[j][k] += 1
     return cm
 
+def one_vs_all_measure(gold, pred):
+    one_hot_gold = np.zeros([len(gold), NUM_CLASS])
+    one_hot_pred = np.zeros([len(pred), NUM_CLASS])
+    assert len(gold) == len(pred)
+    for i in range(len(gold)):
+        one_hot_gold[i, gold[i]] = 1
+        one_hot_pred[i, pred[i]] = 1
+    retval = np.zeros([NUM_CLASS, 3])
+    for i in range(NUM_CLASS):
+        per_gold = one_hot_gold[:, i]
+        per_pred = one_hot_pred[:, i]
+        p = precision_score(per_gold, per_pred, average='binary')
+        r = recall_score(per_gold, per_pred, average='binary')
+        f = f1_score(per_gold, per_pred, average='binary')
+        retval[i, :] = np.asarray([p, r, f])
+    return retval
+
 
 if __name__ == '__main__':
     p_avg = 0
@@ -216,11 +237,14 @@ if __name__ == '__main__':
     cnf_matrix_list = []
     cm = np.zeros([len(emotions), len(emotions)])
     measure_9_emo = np.zeros([3])
+    one_vs_all = np.zeros([NUM_CLASS, 3])
+
     for i in range(5):
         pred_list, gold_list = one_fold(i, is_nine_folds=True)
 
         pred_list = np.argmax(pred_list, axis=1)
         gold_list = np.argmax(gold_list, axis=1)
+        one_vs_all += one_vs_all_measure(gold_list, pred_list)
 
         measure_9_emo[0] += precision_score(gold_list, pred_list, average='macro')
         measure_9_emo[1] += recall_score(gold_list, pred_list, average='macro')
@@ -233,6 +257,8 @@ if __name__ == '__main__':
     for cnf_tmp in cnf_matrix_list:
         cm += cnf_tmp
 
+    one_vs_all /= 5
+    print(one_vs_all)
     measure_9_emo /= 5
     print(measure_9_emo)
 

@@ -41,13 +41,10 @@ class DataSet(Dataset):
         with open(__fold_path, 'r') as f:
             for line in f.readlines():
                 tokens = line.split('\t')
-                if self.only_single:
-                    if tokens[0][0] != 's':
-                        continue
                 if self.use_unk:
-                    tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[1].split()]
+                    tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[0].split()]
                 else:
-                    tmp = [self.word2id[x] for x in tokens[1].split() if x in self.word2id]
+                    tmp = [self.word2id[x] for x in tokens[0].split() if x in self.word2id]
                 if len(tmp) == 0:
                     zero_sent += 1
                     continue
@@ -69,21 +66,16 @@ class DataSet(Dataset):
         return torch.LongTensor(self.data[idx]), torch.LongTensor([self.seq_len[idx]]), torch.FloatTensor(self.label[idx])
 
 
-def build_vocab(fold_id, use_unk=True):
-    word_count = {}
+def build_vocab(fold_path, fold_id, use_unk=True):
     word2id = {}
     id2word = {}
     word_list = []
-    with open('data/Folds_9_Emotions/vocabs_inf_emot/vocab_'+str(fold_id)+'.txt', 'r') as f:
+    with open(fold_path + '/vocab_' + str(fold_id)+'.txt', 'r') as f:
         for line in f.readlines():
             word = line.strip()
 
-            if word in word_count:
-                word_count[word] += 1
-            else:
-                word_count[word] = 1
+            word_list.append(word)
 
-        word_list = [x for x, _ in sorted(word_count.items(), key=lambda v: v[1], reverse=True)]
         # add <pad> first
         word2id['<pad>'] = 0
         id2word[0] = '<pad>'
@@ -108,7 +100,7 @@ def sort_batch(batch, ys, lengths):
 def one_fold(fold_int, is_nine_folds):
     fold_id = str(fold_int)
     if is_nine_folds:
-        fold_path = 'data/Folds_9_Emotions/fold_' + fold_id
+        fold_path = 'data/original_folds/fold_' + fold_id
         num_labels = 9
     else:
         fold_path = 'data/Folds/fold_' + fold_id
@@ -121,7 +113,7 @@ def one_fold(fold_int, is_nine_folds):
     hidden_dim = 800
 
     es = EarlyStop(2)
-    word2id, id2word = build_vocab(fold_id, use_unk=False)
+    word2id, id2word = build_vocab(fold_path, fold_id, use_unk=False)
     vocab_size = len(word2id)
     train_data = DataSet(os.path.join(fold_path, 'train.csv'), pad_len, word2id, num_labels)
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)

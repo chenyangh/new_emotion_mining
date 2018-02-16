@@ -72,6 +72,7 @@ class SelfAttention2 (nn.Module):
         h_tilde = torch.bmm(attn, context).squeeze(1)
         return h_tilde, attn
 
+
 class SelfAttention(nn.Module):
     def __init__(self, hidden_size):
         super(SelfAttention, self).__init__()
@@ -134,10 +135,10 @@ class AttentionLSTMClassifier(nn.Module):
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, bidirectional=self.bidirectional, dropout=0.75)
         # self.hidden = self.init_hidden()
         if self.bidirectional:
+            self.attention_layer = SoftDotAttention(hidden_dim*2)
             self.hidden2label = nn.Linear(hidden_dim*2, label_size)
-            self.attention_layer = SelfAttention(hidden_dim*2)
         else:
-            self.attention_layer = SelfAttention(hidden_dim)
+            self.attention_layer = SoftDotAttention(hidden_dim)
             self.hidden2label = nn.Linear(hidden_dim, label_size)
 
         # self.last_layer = nn.Linear(hidden_dim, label_size * 100)
@@ -166,12 +167,14 @@ class AttentionLSTMClassifier(nn.Module):
 
         # global attention
         if self.use_att:
-            output = lstm_out
-            seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
-            seq_len = Variable(seq_len - 1).cuda()
-            output_extracted = torch.gather(output, 1, seq_len).squeeze(1)  #
+            # output = lstm_out
+            # seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
+            # seq_len = Variable(seq_len - 1).cuda()
+            # output_extracted = torch.gather(output, 1, seq_len).squeeze(1)  #
             # out, att = self.attention_layer(output_extracted, lstm_out)
-            out, att = self.attention_layer(lstm_out, unpacked_len)
+            # out, att = self.attention_layer(lstm_out, unpacked_len)
+            out, att = self.attention_layer(lstm_out[:, -1:].squeeze(1), lstm_out)
+
             y_pred = F.relu(self.hidden2label(out))
 
         else:
@@ -182,7 +185,6 @@ class AttentionLSTMClassifier(nn.Module):
             y_pred = F.relu(self.hidden2label(output_extracted))  # lstm_out[:, -1:].squeeze(1)
 
 
-            # out, att = self.attention_layer(lstm_out[:, -1:].squeeze(1), lstm_out)
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
 
         return F.softmax(y_pred)

@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import *
 import itertools
 
+NUM_CLASS = 6
 
 def tec_data():
     txt = []
@@ -116,7 +117,7 @@ def sort_batch(batch, ys, lengths):
 
 
 def one_fold(X_train, y_train, X_test, y_test):
-    num_labels = 6
+    num_labels = NUM_CLASS
     vocab_size = 5000
     pad_len = 30
     batch_size = 64
@@ -223,13 +224,22 @@ def confusion_matrix(pred_list, gold_list):
     return cm
 
 
-def measure_per_emo(pred, gold):  # TODO
-
-    pass
-
-
-def fold_creator(X, y):  # TODO
-    pass
+def one_vs_all_measure(gold, pred):
+    one_hot_gold = np.zeros([len(gold), NUM_CLASS])
+    one_hot_pred = np.zeros([len(pred), NUM_CLASS])
+    assert len(gold) == len(pred)
+    for i in range(len(gold)):
+        one_hot_gold[i, gold[i]] = 1
+        one_hot_pred[i, pred[i]] = 1
+    retval = np.zeros([NUM_CLASS, 3])
+    for i in range(NUM_CLASS):
+        per_gold = one_hot_gold[:, i]
+        per_pred = one_hot_pred[:, i]
+        p = precision_score(per_gold, per_pred, average='binary')
+        r = recall_score(per_gold, per_pred, average='binary')
+        f = f1_score(per_gold, per_pred, average='binary')
+        retval[i, :] = np.asarray([p, r, f])
+    return retval
 
 
 if __name__ == '__main__':
@@ -247,6 +257,7 @@ if __name__ == '__main__':
 
     kf = StratifiedKFold(n_splits=n_folds, shuffle=True)
     # kf = fold_creator(y)
+    one_vs_all = np.zeros([NUM_CLASS, 3])
 
     for train_index, test_index in kf.split(X, y):
         X_train = [X[tmp] for tmp in train_index]
@@ -257,6 +268,7 @@ if __name__ == '__main__':
 
         pred_list = np.argmax(pred_list, axis=1)
         gold_list = np.argmax(gold_list, axis=1)
+        one_vs_all += one_vs_all_measure(gold_list, pred_list)
 
         measure_9_emo[0] += precision_score(gold_list, pred_list, average='macro')
         measure_9_emo[1] += recall_score(gold_list, pred_list, average='macro')
@@ -267,7 +279,8 @@ if __name__ == '__main__':
 
     for cnf_tmp in cnf_matrix_list:
         cm += cnf_tmp
-
+    one_vs_all /= 5
+    print(one_vs_all)
     measure_9_emo /= 5
     print(measure_9_emo)
 
