@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 import pickle as pkl
 import torch
 import torch.nn as nn
@@ -21,7 +21,7 @@ NUM_CLASS = 9
 
 
 class DataSet(Dataset):
-    def __init__(self, __fold_path, __pad_len, __word2id, __num_labels, max_size=None):
+    def __init__(self, __fold_path, __pad_len, __word2id, __num_labels, max_size=None, use_unk=False):
 
         self.pad_len = __pad_len
         self.word2id = __word2id
@@ -34,14 +34,27 @@ class DataSet(Dataset):
         self.label = []
         self.num_label = __num_labels
         self.seq_len = []
+        self.use_unk = use_unk
+        self.only_single = True
         self.read_data(__fold_path)
         assert len(self.seq_len) == len(self.data) == len(self.label)
 
     def read_data(self, __fold_path):
         with open(__fold_path, 'r') as f:
+            num_empty_lines = 0
+
             for line in f.readlines():
                 tokens = line.split('\t')
-                tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[1].split()]
+                if self.only_single:
+                    if tokens[0][0] != 's':
+                        continue
+                if self.use_unk:
+                    tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[1].split()]
+                else:
+                    tmp = [self.word2id[x] for x in tokens[1].split() if x in self.word2id]
+                if len(tmp) == 0:
+                    num_empty_lines += 1
+                    continue
                 self.seq_len.append(len(tmp) if len(tmp) < self.pad_len else self.pad_len)
                 if len(tmp) > self.pad_len:
                     tmp = tmp[: self.pad_len]
@@ -51,6 +64,8 @@ class DataSet(Dataset):
                 for item in tmp2:
                     a_label[int(item)] = 1
                 self.label.append(a_label)
+
+            print(num_empty_lines, 'empty lines found')
 
     def __len__(self):
         return len(self.data)
@@ -113,14 +128,15 @@ def one_fold(fold_int, is_nine_folds):
     pad_len = 30
     batch_size = 64
     hidden_dim = 800
+    __use_unk = False
 
-    es = EarlyStop(2)
-    word2id, id2word = build_vocab(fold_path, vocab_size, use_unk=True)
+    es = EarlyStop(4)
+    word2id, id2word = build_vocab(fold_path, vocab_size, use_unk=__use_unk)
     embedding_dim = len(word2id)
-    train_data = DataSet(os.path.join(fold_path, 'train.csv'), pad_len, word2id, num_labels)
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    train_data = DataSet(os.path.join(fold_path, 'train.csv'), pad_len, word2id, num_labels, use_unk=__use_unk)
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=False)
 
-    test_data = DataSet(os.path.join(fold_path, 'test.csv'), pad_len, word2id, num_labels)
+    test_data = DataSet(os.path.join(fold_path, 'test.csv'), pad_len, word2id, num_labels, use_unk=__use_unk)
     test_loader = DataLoader(test_data, batch_size=batch_size)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
@@ -130,7 +146,7 @@ def one_fold(fold_int, is_nine_folds):
 
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()))
     loss_criterion = nn.BCELoss()
-    for epoch in range(4):
+    for epoch in range(5):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
         for i, (data, seq_len, label) in enumerate(train_loader):
@@ -190,8 +206,6 @@ def plot_confusion_matrix(cm, classes,
         plt.text(j, i, format(cm[i, j], fmt),
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
-
-
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
@@ -209,6 +223,7 @@ def confusion_matrix(pred_list, gold_list):
         k = pred_list[i]
         cm[j][k] += 1
     return cm
+
 
 def one_vs_all_measure(gold, pred):
     one_hot_gold = np.zeros([len(gold), NUM_CLASS])
@@ -249,7 +264,6 @@ if __name__ == '__main__':
         measure_9_emo[0] += precision_score(gold_list, pred_list, average='macro')
         measure_9_emo[1] += recall_score(gold_list, pred_list, average='macro')
         measure_9_emo[2] += f1_score(gold_list, pred_list, average='macro')
-
 
         cnf_matrix = confusion_matrix(pred_list, gold_list)
         cnf_matrix_list.append(cnf_matrix)

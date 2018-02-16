@@ -194,8 +194,6 @@ def plot_confusion_matrix(cm, classes,
         plt.text(j, i, format(cm[i, j], fmt),
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
-
-
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
@@ -213,6 +211,7 @@ def confusion_matrix(pred_list, gold_list):
         k = pred_list[i]
         cm[j][k] += 1
     return cm
+
 
 def one_vs_all_measure(gold, pred):
     one_hot_gold = np.zeros([len(gold), NUM_CLASS])

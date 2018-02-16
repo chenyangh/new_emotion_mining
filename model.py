@@ -134,11 +134,12 @@ class AttentionLSTMClassifier(nn.Module):
         self.embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx=self.pad_token_src)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, bidirectional=self.bidirectional, dropout=0.75)
         # self.hidden = self.init_hidden()
+        self.att = SelfAttention
         if self.bidirectional:
-            self.attention_layer = SoftDotAttention(hidden_dim*2)
+            self.attention_layer = self.att(hidden_dim*2)
             self.hidden2label = nn.Linear(hidden_dim*2, label_size)
         else:
-            self.attention_layer = SoftDotAttention(hidden_dim)
+            self.attention_layer = self.att(hidden_dim)
             self.hidden2label = nn.Linear(hidden_dim, label_size)
 
         # self.last_layer = nn.Linear(hidden_dim, label_size * 100)
@@ -167,13 +168,13 @@ class AttentionLSTMClassifier(nn.Module):
 
         # global attention
         if self.use_att:
-            # output = lstm_out
-            # seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
-            # seq_len = Variable(seq_len - 1).cuda()
-            # output_extracted = torch.gather(output, 1, seq_len).squeeze(1)  #
+            output = lstm_out
+            seq_len = torch.LongTensor(unpacked_len).view(-1, 1, 1).expand(output.size(0), 1, output.size(2))
+            seq_len = Variable(seq_len - 1).cuda()
+            output_extracted = torch.gather(output, 1, seq_len).squeeze(1)  #
             # out, att = self.attention_layer(output_extracted, lstm_out)
-            # out, att = self.attention_layer(lstm_out, unpacked_len)
-            out, att = self.attention_layer(lstm_out[:, -1:].squeeze(1), lstm_out)
+            out, att = self.attention_layer(lstm_out, unpacked_len)
+            # out, att = self.attention_layer(lstm_out[:, -1:].squeeze(1), lstm_out)
 
             y_pred = F.relu(self.hidden2label(out))
 
