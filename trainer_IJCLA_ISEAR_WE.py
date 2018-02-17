@@ -18,6 +18,7 @@ import itertools
 
 NUM_CLASS = 7
 
+
 def isear_data():
     from py_isear.isear_loader import IsearLoader
     attributes = ['SIT']
@@ -26,7 +27,21 @@ def isear_data():
     data = loader.load_isear('data/isear.csv')
     txt = data.get_freetext_content()  # returns attributes
     emo = data.get_target()  # returns target
-    return txt, emo
+
+    from nltk.corpus import stopwords
+    from nltk.tokenize import word_tokenize
+
+    # example_sent = "This is a sample sentence, showing off the stop words filtration."
+
+    stop_words = set(stopwords.words('english'))
+
+    new_txt = []
+    for t in txt:
+        t = t.lower()
+        word_tokens = word_tokenize(t)
+        filtered_sentence = [w for w in word_tokens if not w in stop_words]
+        new_txt.append(' '.join(filtered_sentence))
+    return new_txt, emo
 
 
 class DataSet(Dataset):
@@ -71,6 +86,7 @@ class DataSet(Dataset):
 
             self.label.append(a_label)
         print(num_empty_lines, 'empty lines found')
+
     def __len__(self):
         return len(self.data)
 
@@ -117,10 +133,9 @@ def sort_batch(batch, ys, lengths):
     return seq_tensor, targ_tensor, seq_lengths
 
 
-
 def one_fold(X_train, y_train, X_test, y_test):
     num_labels = NUM_CLASS
-    vocab_size = 20000
+    vocab_size = 8000
     pad_len = 30
     batch_size = 64
     embedding_dim = 200
@@ -136,7 +151,7 @@ def one_fold(X_train, y_train, X_test, y_test):
     test_loader = DataLoader(test_data, batch_size=batch_size)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
-                                    num_labels, batch_size)
+                                    num_labels, batch_size, use_att=True)
     model.load_glove_embedding(id2word)
     model.cuda()
 

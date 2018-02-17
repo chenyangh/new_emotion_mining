@@ -67,9 +67,9 @@ class DataSet(Dataset):
 
             a_label = [0] * self.num_label
             a_label[int(y)] = 1
-
             self.label.append(a_label)
         print(num_empty_lines, 'empty lines found')
+
     def __len__(self):
         return len(self.data)
 
@@ -120,7 +120,7 @@ def one_fold(X_train, y_train, X_test, y_test):
     num_labels = NUM_CLASS
     vocab_size = 20000
     pad_len = 30
-    batch_size = 64
+    batch_size = 100
     embedding_dim = 200
     hidden_dim = 400
     __use_unk = False
@@ -128,22 +128,23 @@ def one_fold(X_train, y_train, X_test, y_test):
     word2id, id2word = build_vocab(X_train, vocab_size, use_unk=__use_unk)
 
     train_data = DataSet(X_train, y_train, pad_len, word2id, num_labels, use_unk=__use_unk)
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=False)
 
     test_data = DataSet(X_test, y_test, pad_len, word2id, num_labels, use_unk=__use_unk)
     test_loader = DataLoader(test_data, batch_size=batch_size)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
-                                    num_labels, batch_size)
+                                    num_labels, batch_size, use_att=True)
     model.load_glove_embedding(id2word)
     model.cuda()
 
     optimizer = optim.Adam(model.parameters())
-    loss_criterion = nn.BCELoss()
+    loss_criterion = nn.MSELoss()
     for epoch in range(4):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
         for i, (data, seq_len, label) in enumerate(train_loader):
+            # print(i)
             data, label, seq_len = sort_batch(data, label, seq_len.view(-1))
             y_pred = model(Variable(data).cuda(), seq_len)
             optimizer.zero_grad()
@@ -255,7 +256,7 @@ if __name__ == '__main__':
     measure_9_emo = np.zeros([3])
     n_folds = 5
 
-    kf = StratifiedKFold(n_splits=n_folds, shuffle=True)
+    kf = StratifiedKFold(n_splits=n_folds, shuffle=False)
     # kf = fold_creator(y)
     one_vs_all = np.zeros([NUM_CLASS, 3])
 
