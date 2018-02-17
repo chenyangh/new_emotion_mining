@@ -66,7 +66,7 @@ class DataSet(Dataset):
             self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
 
             a_label = [0] * self.num_label
-            a_label[int(y)-1] = 1
+            a_label[int(y)] = 1
 
             self.label.append(a_label)
         print(num_empty_lines, 'empty lines found')

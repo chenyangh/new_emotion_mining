@@ -66,7 +66,7 @@ class DataSet(Dataset):
             self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
 
             a_label = [0] * self.num_label
-            a_label[int(y)-1] = 1
+            a_label[int(y)] = 1
 
             self.label.append(a_label)
         print(num_empty_lines, 'empty lines found')
@@ -118,11 +118,11 @@ def sort_batch(batch, ys, lengths):
 
 def one_fold(X_train, y_train, X_test, y_test):
     num_labels = NUM_CLASS
-    vocab_size = 5000
+    vocab_size = 20000
     pad_len = 30
     batch_size = 64
     embedding_dim = 200
-    hidden_dim = 800
+    hidden_dim = 400
     __use_unk = False
     es = EarlyStop(2)
     word2id, id2word = build_vocab(X_train, vocab_size, use_unk=__use_unk)

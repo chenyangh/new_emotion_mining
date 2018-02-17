@@ -120,11 +120,11 @@ def sort_batch(batch, ys, lengths):
 
 def one_fold(X_train, y_train, X_test, y_test):
     num_labels = NUM_CLASS
-    vocab_size = 10000
+    vocab_size = 20000
     pad_len = 30
     batch_size = 64
     embedding_dim = 200
-    hidden_dim = 800
+    hidden_dim = 500
     __use_unk = False
     es = EarlyStop(2)
     word2id, id2word = build_vocab(X_train, vocab_size, use_unk=__use_unk)
