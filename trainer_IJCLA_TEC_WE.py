@@ -18,12 +18,13 @@ import itertools
 
 NUM_CLASS = 6
 
+
 def tec_data():
     txt = []
     emo = []
     for line in open('data/TEC.txt', 'r').readlines():
         tokens = line.split()
-        txt.append(' '.join(tokens[:-2]))
+        txt.append(' '.join(tokens[:-2]).lower())
         emo.append(tokens[-1])
     return txt, emo
 
