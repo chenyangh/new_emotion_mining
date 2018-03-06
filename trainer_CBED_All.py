@@ -231,7 +231,7 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     es = EarlyStop(2)
     optimizer = optim.Adam(model.parameters())
     loss_criterion = nn.MSELoss()  #
-    threshold = 0.7
+    threshold = 0.65
     for epoch in range(30):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
