@@ -37,21 +37,31 @@ class DataSet(Dataset):
 
     def read_data(self, __fold_path):
         with open(__fold_path, 'r') as f:
+            empty_line_count = 0
+            all_lines = 0
             for line in f.readlines():
-                tokens = line.split('\t')
+
+                tokens = line.lower().split('\t')
+                if tokens[0][0] != 's':
+                    continue
+                all_lines += 1
                 if self.use_unk:
-                    tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[1].split()]
+                    tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens[0].split()]
                 else:
                     tmp = [self.word2id[x] for x in tokens[1].split() if x in self.word2id]
+                if len(tmp) == 0:
+                    empty_line_count += 1
+                    continue
                 self.seq_len.append(len(tmp) if len(tmp) < self.pad_len else self.pad_len)
                 if len(tmp) > self.pad_len:
                     tmp = tmp[: self.pad_len]
                 self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
-                tmp2 = tokens[2:]
+                tmp2 = tokens[-1]
                 a_label = [0] * self.num_label
-                for item in tmp2:
-                    a_label[int(item)] = 1
+
+                a_label[int(tmp2)] = 1
                 self.label.append(a_label)
+            print('found', empty_line_count, 'lines over', all_lines)
 
     def __len__(self):
         return len(self.data)
@@ -64,7 +74,7 @@ def build_vocab(fold_path, fold_id, use_unk=False):
     word2id = {}
     id2word = {}
     word_list = []
-    with open(fold_path + '/vocab_' + str(fold_id)+'.txt', 'r') as f:
+    with open(fold_path + '/inf_vocab.txt', 'r') as f:
         for line in f.readlines():
             word = line.strip()
 
@@ -105,7 +115,7 @@ def one_fold(fold_int, is_nine_folds):
     hidden_dim = 400
 
     es = EarlyStop(2)
-    word2id, id2word = build_vocab(fold_id, use_unk=True)
+    word2id, id2word = build_vocab(fold_path, fold_id, use_unk=True)
     embedding_dim = len(word2id)
     vocab_size = len(word2id)
     train_data = DataSet(os.path.join(fold_path, 'train.csv'), pad_len, word2id, num_labels)

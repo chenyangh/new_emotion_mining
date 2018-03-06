@@ -33,14 +33,15 @@ def isear_data():
 
     # example_sent = "This is a sample sentence, showing off the stop words filtration."
 
-    stop_words = set(stopwords.words('english'))
-
+    # stop_words = set(stopwords.words('english'))
+    #
     new_txt = []
     for t in txt:
         t = t.lower()
-        word_tokens = word_tokenize(t)
-        filtered_sentence = [w for w in word_tokens if not w in stop_words]
-        new_txt.append(' '.join(filtered_sentence))
+        # word_tokens = word_tokenize(t)
+        # filtered_sentence = [w for w in word_tokens if not w in stop_words]
+        # new_txt.append(' '.join(filtered_sentence))
+        new_txt.append(t)
     return new_txt, emo
 
 
@@ -135,7 +136,7 @@ def sort_batch(batch, ys, lengths):
 
 def one_fold(X_train, y_train, X_test, y_test):
     num_labels = NUM_CLASS
-    vocab_size = 8000
+    vocab_size = 9000
     pad_len = 30
     batch_size = 64
     embedding_dim = 200
