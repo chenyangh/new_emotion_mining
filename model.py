@@ -122,7 +122,7 @@ class SelfAttention(nn.Module):
 
 class AttentionLSTMClassifier(nn.Module):
     def __init__(self, embedding_dim, hidden_dim, vocab_size, word2id,
-                 label_size, batch_size, use_att=True):
+                 label_size, batch_size, use_att=True, soft_last=True):
         super(AttentionLSTMClassifier, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
@@ -131,6 +131,7 @@ class AttentionLSTMClassifier(nn.Module):
         self.embedding_dim = embedding_dim
         self.bidirectional = True
         self.use_att = use_att
+        self.soft_last = soft_last
         self.embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx=self.pad_token_src)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, bidirectional=self.bidirectional, dropout=0.75)
         # self.hidden = self.init_hidden()
@@ -185,10 +186,11 @@ class AttentionLSTMClassifier(nn.Module):
             output_extracted = torch.gather(output, 1, seq_len).squeeze(1)
             y_pred = F.relu(self.hidden2label(output_extracted))  # lstm_out[:, -1:].squeeze(1)
 
-
         # loss = self.loss_criterion(nn.Sigmoid()(y_pred), y)
-
-        return F.softmax(y_pred)
+        if self.soft_last:
+            return F.softmax(y_pred)
+        else:
+            return y_pred
 
     def load_glove_embedding(self, id2word):
         """

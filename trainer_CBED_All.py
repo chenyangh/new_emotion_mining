@@ -18,7 +18,7 @@ import pickle
 import pandas as pd
 from tqdm import tqdm
 from sklearn.utils.class_weight import compute_class_weight
-NUM_CLASS = 2
+NUM_CLASS = 9
 
 
 def cbet_data(label_cols):
@@ -92,12 +92,12 @@ class DataSet(Dataset):
                 tmp = tmp[: self.pad_len]
             self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
             # a_label = [0] * self.num_label
-            if int(y) == 1:
-                a_label = [0, 1]
-            else:
-                a_label = [1, 0]
+            # if int(y) == 1:
+            #     a_label = [0, 1]
+            # else:
+            #     a_label = [1, 0]
 
-            self.label.append(a_label)
+            self.label.append(y)
         print(num_empty_lines, 'empty lines found')
 
     def __len__(self):
@@ -203,7 +203,7 @@ def sort_batch_test(batch, lengths):
     return seq_tensor, seq_lengths, rever_sort.astype(int)
 
 
-def one_fold(X_train, y_train, X_dev, y_dev,  class_weight):
+def one_fold(X_train, y_train, X_dev, y_dev):
 
     num_labels = NUM_CLASS
     vocab_size = 20000
@@ -225,19 +225,18 @@ def one_fold(X_train, y_train, X_dev, y_dev,  class_weight):
     # test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
-                                    num_labels, batch_size, use_att=False)
+                                    num_labels, batch_size, use_att=False, soft_last=False)
     model.load_glove_embedding(id2word)
     model.cuda()
     es = EarlyStop(2)
     optimizer = optim.Adam(model.parameters())
-
+    loss_criterion = nn.MSELoss()  #
+    threshold = 0.7
     for epoch in range(30):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
         for i, (data, seq_len, label) in enumerate(train_loader):
-            weight = torch.FloatTensor(class_weight)  # re-weight
-            weight_expanded = weight.expand(len(data), -1)
-            loss_criterion = nn.BCELoss(weight=weight_expanded.cuda())  #
+
             data, label, seq_len = sort_batch(data, label, seq_len.view(-1))
             y_pred = model(Variable(data).cuda(), seq_len)
 
@@ -254,24 +253,23 @@ def one_fold(X_train, y_train, X_dev, y_dev,  class_weight):
         for _, (_data, _seq_len, _label) in enumerate(dev_loader):
             data, label, seq_len = sort_batch(_data, _label, _seq_len.view(-1))
             y_pred = model(Variable(data, volatile=True).cuda(), seq_len)
-            weight = torch.FloatTensor(class_weight)  # re-weight
-            weight_expanded = weight.expand(len(data), -1)
-            loss_criterion = nn.BCELoss(weight=weight_expanded.cuda())
-            loss = loss_criterion(y_pred, Variable(label, volatile=True).cuda())
+            loss = loss_criterion(y_pred, Variable(label).cuda()) #* Variable(torch.FloatTensor([roc_reward])).cuda()
             test_loss += loss.data[0]
-            pred_list.append(y_pred.data.cpu().numpy())
+            y_pred = y_pred.data.cpu().numpy()
+            y_pred = np.asarray([1 & (v > threshold) for v in y_pred])
+            pred_list.append(y_pred)  # x[np.where( x > 3.0 )]
             gold_list.append(label.numpy())
 
-        pred_list_2 = np.concatenate(pred_list, axis=0)[:, 1]
+        # pred_list_2 = np.concatenate(pred_list, axis=0)[:, 1]
         pred_list = np.concatenate(pred_list, axis=0).argmax(axis=1)
         gold_list = np.concatenate(gold_list, axis=0).argmax(axis=1)
-        roc = roc_auc_score(gold_list, pred_list_2)
-        print('roc:', roc)
-        a = accuracy_score(gold_list, pred_list)
-        p = precision_score(gold_list, pred_list, average='macro')
-        r = recall_score(gold_list, pred_list, average='macro')
-        f1 = f1_score(gold_list, pred_list, average='macro')
-        print('accuracy:', a, 'precision_score:', p, 'recall:', r, 'f1:', f1)
+        # roc = roc_auc_score(gold_list, pred_list_2)
+        # print('roc:', roc)
+        # a = accuracy_score(gold_list, pred_list)
+        # p = precision_score(gold_list, pred_list, average='binary')
+        # r = recall_score(gold_list, pred_list, average='binary')
+        # f1 = f1_score(gold_list, pred_list, average='binary')
+        # print('accuracy:', a, 'precision_score:', p, 'recall:', r, 'f1:', f1)
         print("Train Loss: ", train_loss, " Evaluation: ", test_loss)
         es.new_loss(test_loss)
         if es.if_stop():
@@ -308,24 +306,22 @@ if __name__ == '__main__':
     # with open('tmp', 'bw') as f:
     #     pickle.dump([X_train, X_test, y_train, y_test], f)
 
-    from sklearn.model_selection import StratifiedShuffleSplit
-    sss = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=0)
-    golds = np.zeros((int(len(X)*0.1), y.shape[1]))
-    preds = np.zeros((int(len(X)*0.1), y.shape[1]))
-    for i, col in enumerate(label_cols):
-        for train_index, dev_index in sss.split(X, y[col]):
-            X_train, X_dev = [X[i] for i in train_index], [X[i] for i in dev_index]
-            y_train, y_dev = y[col][train_index], y[col][dev_index]
-            print('start label', col)
-            class_weight = compute_class_weight('balanced', np.unique(y_train), y_train)
-            # class_weight = [0.5, 0.5]
-            print(class_weight)
-            gold_list, pred_list = one_fold(X_train, y_train, X_dev, y_dev, class_weight)
-        golds[:, i] = gold_list
-        preds[:, i] = pred_list
-    p = precision_score(golds, preds, average='macro')
-    r = recall_score(golds, preds, average='macro')
-    f1 = f1_score(golds, preds, average='macro')
+    from sklearn.model_selection import StratifiedShuffleSplit, ShuffleSplit
+    sss = ShuffleSplit(n_splits=1, test_size=0.1, random_state=0)
+    # golds = np.zeros((int(len(X)*0.1) + 1, y.shape[1]))
+    # preds = np.zeros((int(len(X)*0.1) + 1, y.shape[1]))
+    y = np.asarray(y[label_cols])
+    for train_index, dev_index in sss.split(X, y):
+        X_train, X_dev = [X[i] for i in train_index], [X[i] for i in dev_index]
+        y_train, y_dev = y[train_index], y[dev_index]
+        # class_weight = compute_class_weight('balanced', np.unique(y_train), y_train)
+        # class_weight = [0.5, 0.5]
+        # print(class_weight)
+        gold_list, pred_list = one_fold(X_train, y_train, X_dev, y_dev)
+
+    p = precision_score(gold_list, pred_list, average='macro')
+    r = recall_score(gold_list, pred_list, average='macro')
+    f1 = f1_score(gold_list, pred_list, average='macro')
     print(p, r, f1)
     # with open('preds', 'bw') as f:
     #     pickle.dump(preds, f)

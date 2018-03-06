@@ -268,9 +268,9 @@ def one_fold(X_train, y_train, X_dev, y_dev,  class_weight):
         roc = roc_auc_score(gold_list, pred_list_2)
         print('roc:', roc)
         a = accuracy_score(gold_list, pred_list)
-        p = precision_score(gold_list, pred_list, average='macro')
-        r = recall_score(gold_list, pred_list, average='macro')
-        f1 = f1_score(gold_list, pred_list, average='macro')
+        p = precision_score(gold_list, pred_list, average='binary')
+        r = recall_score(gold_list, pred_list, average='binary')
+        f1 = f1_score(gold_list, pred_list, average='binary')
         print('accuracy:', a, 'precision_score:', p, 'recall:', r, 'f1:', f1)
         print("Train Loss: ", train_loss, " Evaluation: ", test_loss)
         es.new_loss(test_loss)
@@ -317,9 +317,9 @@ if __name__ == '__main__':
             X_train, X_dev = [X[i] for i in train_index], [X[i] for i in dev_index]
             y_train, y_dev = y[col][train_index], y[col][dev_index]
             print('start label', col)
-            class_weight = compute_class_weight('balanced', np.unique(y_train), y_train)
-            # class_weight = [0.5, 0.5]
-            print(class_weight)
+            # class_weight = compute_class_weight('balanced', np.unique(y_train), y_train)
+            class_weight = [1, 1]
+            print('class weight:', class_weight)
             gold_list, pred_list = one_fold(X_train, y_train, X_dev, y_dev, class_weight)
         golds[:, i] = gold_list
         preds[:, i] = pred_list
