@@ -231,7 +231,7 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     es = EarlyStop(2)
     optimizer = optim.Adam(model.parameters())
     loss_criterion = nn.MSELoss()  #
-    threshold = 0.65
+    threshold = 0.8
     for epoch in range(30):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
@@ -276,7 +276,7 @@ def one_fold(X_train, y_train, X_dev, y_dev):
             print('Start over fitting')
             break
 
-    return gold_list, pred_list
+    return gold_list, pred_list, model, pad_len, word2id, num_labels
     # pred_list = []
     # for i, (data, seq_len) in tqdm(enumerate(test_loader), total=len(test_data.data)/batch_size):
     #     data, seq_len, rever_sort = sort_batch_test(data, seq_len.view(-1))
@@ -286,6 +286,45 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     # print('Inference done')
     # re_val = np.concatenate(pred_list, axis=0)
     # return re_val
+
+
+def tag_file(f_name, model, pad_len, word2id, num_labels):
+    print('start tagging', f_name, "-------")
+    lines = open('OpenSubData/data_' + f_name + '.text', 'r').readlines()
+    batch_size =1024
+    from nltk.corpus import stopwords
+    from nltk.tokenize import word_tokenize
+    # for col in label_cols:
+    #     label.append(data[col])
+    #
+    # label = np.asarray(label).transpose()
+    # example_sent = "This is a sample sentence, showing off the stop words filtration."
+
+    stop_words = set(stopwords.words('english'))
+
+    test_text = []
+    for t in tqdm(lines):
+        t = t.lower()
+        word_tokens = word_tokenize(t)
+        filtered_sentence = [w for w in word_tokens if not w in stop_words]
+        test_text.append(' '.join(filtered_sentence))
+
+    test_data = TestDataSet(test_text, pad_len, word2id, num_labels, use_unk=False)
+    test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
+
+    pred_list = []
+    threshold = 0.8
+    for i, (data, seq_len) in tqdm(enumerate(test_loader), total=len(test_data.data)/batch_size):
+        data, seq_len, rever_sort = sort_batch_test(data, seq_len.view(-1))
+        y_pred = model(Variable(data, volatile=True).cuda(), seq_len)
+        pred_list.append(y_pred.data.cpu().numpy()[rever_sort])
+    print('Inference done')
+    to_tag = np.concatenate(pred_list, axis=0)
+
+    m = to_tag > threshold
+    idx0 = np.where(m, to_tag, np.nanmin(to_tag) - 1).argmax(1)
+    to_tag = np.where(m.any(1), idx0, np.nan)
+    np.savetxt('test0.8.txt', to_tag, fmt='%.0f')
 
 
 if __name__ == '__main__':
@@ -317,12 +356,18 @@ if __name__ == '__main__':
         # class_weight = compute_class_weight('balanced', np.unique(y_train), y_train)
         # class_weight = [0.5, 0.5]
         # print(class_weight)
-        gold_list, pred_list = one_fold(X_train, y_train, X_dev, y_dev)
+        gold_list, pred_list, model, pad_len, word2id, num_labels = one_fold(X_train, y_train, X_dev, y_dev)
 
     p = precision_score(gold_list, pred_list, average='macro')
     r = recall_score(gold_list, pred_list, average='macro')
     f1 = f1_score(gold_list, pred_list, average='macro')
     print(p, r, f1)
+
+    tag_file('2_train', model, pad_len, word2id, num_labels)
+    tag_file('2_test', model, pad_len, word2id, num_labels)
+    tag_file('6_train', model, pad_len, word2id, num_labels)
+    tag_file('6_test', model, pad_len, word2id, num_labels)
+
     # with open('preds', 'bw') as f:
     #     pickle.dump(preds, f)
     #
@@ -334,5 +379,4 @@ if __name__ == '__main__':
     # r = recall_score(gold_list, pred_list, average='macro')
     # f1 = f1_score(gold_list, pred_list, average='macro')
     # print(p, r, f1)
-
 
