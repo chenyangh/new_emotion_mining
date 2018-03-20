@@ -18,40 +18,24 @@ import itertools
 
 NUM_CLASS = 9
 
-
-def cbet_data(label_cols, fold_id):
-    path_foo = 'data/Folds_9_Emotions/fold_' + str(fold_id)
-    data = pd.read_csv('path_foo/CBET.csv')
-    # test_data = pd.read_csv('data/test.csv')
-    # label = pd.read_csv('data/test.csv')
+def cbet_data(file_path):
     from nltk.corpus import stopwords
     from nltk.tokenize import word_tokenize
-    label = data[label_cols]
-    # for col in label_cols:
-    #     label.append(data[col])
-    #
-    # label = np.asarray(label).transpose()
-    # example_sent = "This is a sample sentence, showing off the stop words filtration."
 
     stop_words = set(stopwords.words('english'))
-
+    label = []
     train_text = []
-    for t in data['text'].fillna("fillna").values:
-        t = t.lower()
-        word_tokens = word_tokenize(t)
+    for t in open(file_path, 'r').readlines():
+        tokens = t.split()
+        text = t[1].lower()
+        a_label = [1 if str(x) in t[2:] else 0 for x in range(NUM_CLASS)]
+        a_label = ''.join(str(e) for e in reversed(a_label))
+        label.append(int(a_label, 2))
+        word_tokens = word_tokenize(text)
         filtered_sentence = [w for w in word_tokens if not w in stop_words]
         train_text.append(' '.join(filtered_sentence))
 
-    # test_text = []
-    # for t in test_data['comment_text'].fillna("fillna").values:
-    #     t = t.lower()
-    #     word_tokens = word_tokenize(t)
-    #     filtered_sentence = [w for w in word_tokens if not w in stop_words]
-    #     test_text.append(' '.join(filtered_sentence))
-    #
-    # sub_id = test_data['id']
     return train_text, label
-
 
 
 class DataSet(Dataset):
@@ -92,10 +76,9 @@ class DataSet(Dataset):
                 tmp = tmp[: self.pad_len]
             self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
             # a_label = [0] * self.num_label
-            if int(y) == 1:
-                a_label = [0, 1]
-            else:
-                a_label = [1, 0]
+
+            tmp = bin(y)[2:]
+            a_label = reversed(tmp).extend((self.num_label-len(tmp))*[0])
 
             self.label.append(a_label)
         print(num_empty_lines, 'empty lines found')
@@ -105,51 +88,6 @@ class DataSet(Dataset):
 
     def __getitem__(self, idx):
         return torch.LongTensor(self.data[idx]), torch.LongTensor([self.seq_len[idx]]), torch.FloatTensor(self.label[idx])
-
-
-class TestDataSet(Dataset):
-    def __init__(self, __X, __pad_len, __word2id, __num_labels, max_size=None, use_unk=True):
-
-        self.pad_len = __pad_len
-        self.word2id = __word2id
-        self.pad_int = __word2id['<pad>']
-        if max_size is not None:
-            self.source = self.source[:max_size]
-            self.target = self.target[:max_size]
-            self.tag = self.tag[:max_size]
-        self.data = []
-        self.num_label = __num_labels
-        self.seq_len = []
-        self.only_single = True
-        self.use_unk = use_unk
-
-        self.read_data(__X)  # process data
-        assert len(self.seq_len) == len(self.data)
-
-    def read_data(self, __X):
-        num_empty_lines = 0
-        for X in __X:
-            tokens = X.split()
-            if self.use_unk:
-                tmp = [self.word2id[x] if x in self.word2id else self.word2id['<unk>'] for x in tokens]
-            else:
-                tmp = [self.word2id[x] for x in tokens if x in self.word2id]
-            if len(tmp) == 0:
-                tmp = [self.word2id['<empty>']]
-                num_empty_lines += 1
-                # continue
-
-            self.seq_len.append(len(tmp) if len(tmp) < self.pad_len else self.pad_len)
-            if len(tmp) > self.pad_len:
-                tmp = tmp[: self.pad_len]
-            self.data.append(tmp + [self.pad_int] * (self.pad_len - len(tmp)))
-        print(num_empty_lines, 'empty lines found')
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        return torch.LongTensor(self.data[idx]), torch.LongTensor([self.seq_len[idx]])
 
 
 def build_vocab(X_train, vocab_size):
@@ -195,27 +133,32 @@ def sort_batch(batch, ys, lengths):
     return seq_tensor, targ_tensor, seq_lengths
 
 
-def one_fold(fold_int, is_nine_folds):
-    fold_id = str(fold_int)
-    if is_nine_folds:
-        fold_path = 'data/Folds_9_Emotions/fold_' + fold_id
-        num_labels = 9
-    else:
-        fold_path = 'data/Folds/fold_' + fold_id
-        num_labels = 16
+def one_fold(fold_path):
 
     vocab_size = 20000
     pad_len = 30
     batch_size = 64
     embedding_dim = 200
     hidden_dim = 800
+    num_labels = NUM_CLASS
 
-    es = EarlyStop(2)
-    word2id, id2word = build_vocab(fold_path, vocab_size, use_unk=True)
-    train_data = DataSet(os.path.join(fold_path, 'train.csv'), pad_len, word2id, num_labels)
+    X, y = cbet_data(os.path.join(fold_path, 'train.csv'))
+    X_test, y_test = cbet_data(os.path.join(fold_path, 'train.csv'))
+    from sklearn.model_selection import StratifiedShuffleSplit
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=0)
+    train_index, dev_index = next(sss.split(X, y))
+    X_train, X_dev = [X[i] for i in train_index], [X[i] for i in dev_index]
+    y_train, y_dev = y[train_index], y[dev_index]
+
+    word2id, id2word = build_vocab(X_train, vocab_size)
+    # __X, __y, __pad_len, __word2id, __num_labels
+    train_data = DataSet(X_train, y_train, pad_len, word2id, num_labels)
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
-    test_data = DataSet(os.path.join(fold_path, 'test.csv'), pad_len, word2id, num_labels)
+    dev_data = DataSet(X_dev, y_dev, pad_len, word2id, num_labels)
+    dev_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+
+    test_data = DataSet(X_test, y_test, pad_len, word2id, num_labels)
     test_loader = DataLoader(test_data, batch_size=batch_size)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
@@ -225,7 +168,8 @@ def one_fold(fold_int, is_nine_folds):
 
     optimizer = optim.Adam(model.parameters())
     loss_criterion = nn.BCELoss()
-    for epoch in range(4):
+    es = EarlyStop(2)
+    for epoch in range(5):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
         for i, (data, seq_len, label) in enumerate(train_loader):
@@ -239,7 +183,7 @@ def one_fold(fold_int, is_nine_folds):
         pred_list = []
         gold_list = []
         test_loss = 0
-        for i, (data, seq_len, label) in enumerate(test_loader):
+        for i, (data, seq_len, label) in enumerate(dev_loader):
             data, label, seq_len = sort_batch(data, label, seq_len.view(-1))
             y_pred = model(Variable(data, volatile=True).cuda(), seq_len)
             loss = loss_criterion(y_pred, Variable(label, volatile=True).cuda())
@@ -252,6 +196,18 @@ def one_fold(fold_int, is_nine_folds):
         if es.if_stop():
             print('Start over fitting')
             break
+
+    # testing
+    pred_list = []
+    gold_list = []
+    test_loss = 0
+    for i, (data, seq_len, label) in enumerate(test_loader):
+        data, label, seq_len = sort_batch(data, label, seq_len.view(-1))
+        y_pred = model(Variable(data, volatile=True).cuda(), seq_len)
+        loss = loss_criterion(y_pred, Variable(label, volatile=True).cuda())
+        test_loss += loss.data[0]
+        pred_list.append(y_pred.data.cpu().numpy())
+        gold_list.append(label.numpy())
 
     return np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0)
 
@@ -336,7 +292,9 @@ if __name__ == '__main__':
     one_vs_all = np.zeros([NUM_CLASS, 3])
 
     for i in range(5):
-        pred_list, gold_list = one_fold(i, is_nine_folds=True)
+        fold_path = 'data/Folds_9_Emotions/fold_' + str(i)
+
+        pred_list, gold_list = one_fold(fold_path, is_nine_folds=True)
 
         pred_list = np.argmax(pred_list, axis=1)
         gold_list = np.argmax(gold_list, axis=1)
