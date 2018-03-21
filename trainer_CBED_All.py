@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import *
 import itertools
 import pickle
+import copy
 import pandas as pd
 from tqdm import tqdm
 from sklearn.utils.class_weight import compute_class_weight
@@ -225,13 +226,14 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     # test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
-                                    num_labels, batch_size, use_att=False, soft_last=False)
+                                    num_labels, batch_size, use_att=True, soft_last=False)
     model.load_glove_embedding(id2word)
     model.cuda()
     es = EarlyStop(2)
     optimizer = optim.Adam(model.parameters())
     loss_criterion = nn.MSELoss()  #
-    threshold = 0.8
+    threshold = 0.6
+    old_model = None
     for epoch in range(30):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
@@ -272,8 +274,15 @@ def one_fold(X_train, y_train, X_dev, y_dev):
         # print('accuracy:', a, 'precision_score:', p, 'recall:', r, 'f1:', f1)
         print("Train Loss: ", train_loss, " Evaluation: ", test_loss)
         es.new_loss(test_loss)
+        if old_model is not None:
+            del old_model
+            old_model = copy.deepcopy(model)
+        else:
+            old_model = copy.deepcopy(model)
         if es.if_stop():
             print('Start over fitting')
+            del model
+            model = old_model
             break
 
     return gold_list, pred_list, model, pad_len, word2id, num_labels
@@ -308,23 +317,47 @@ def tag_file(f_name, model, pad_len, word2id, num_labels):
         word_tokens = word_tokenize(t)
         filtered_sentence = [w for w in word_tokens if not w in stop_words]
         test_text.append(' '.join(filtered_sentence))
+        # if len(test_text) > 10000:
+        #     break
 
     test_data = TestDataSet(test_text, pad_len, word2id, num_labels, use_unk=False)
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
     pred_list = []
-    threshold = 0.8
     for i, (data, seq_len) in tqdm(enumerate(test_loader), total=len(test_data.data)/batch_size):
         data, seq_len, rever_sort = sort_batch_test(data, seq_len.view(-1))
         y_pred = model(Variable(data, volatile=True).cuda(), seq_len)
         pred_list.append(y_pred.data.cpu().numpy()[rever_sort])
-    print('Inference done')
-    to_tag = np.concatenate(pred_list, axis=0)
 
-    m = to_tag > threshold
-    idx0 = np.where(m, to_tag, np.nanmin(to_tag) - 1).argmax(1)
-    to_tag = np.where(m.any(1), idx0, np.nan)
-    np.savetxt('test0.8.txt', to_tag, fmt='%.0f')
+    if True:
+        threshold = 0.35
+        to_tag = np.concatenate(pred_list, axis=0)
+
+        m = to_tag > threshold
+        idx0 = np.where(m, to_tag, np.nanmin(to_tag) - 1).argmax(1)
+        to_tag = np.where(m.any(1), idx0, np.nan)
+        np.savetxt('result/' + f_name + '.tag', to_tag, fmt='%.0f')
+
+    else:
+        thres_list = [x * 0.05 for x in range(1, 20)]
+        thres_hold = []
+        for threshold in thres_list:
+            # print('Inference done')
+            to_tag = np.concatenate(pred_list, axis=0)
+
+            m = to_tag > threshold
+            idx0 = np.where(m, to_tag, np.nanmin(to_tag) - 1).argmax(1)
+            to_tag = np.where(m.any(1), idx0, np.nan)
+            ratio = np.count_nonzero(~np.isnan(to_tag)) / len(to_tag)
+            thres_hold.append(ratio)
+            print(threshold, ratio)
+
+        plt.plot(thres_list, thres_hold)
+        plt.legend(['Recall'], loc='lower left')
+        plt.grid(True)
+        plt.xlabel('Threshold')
+        plt.ylabel('Score')
+        plt.show()
 
 
 if __name__ == '__main__':
@@ -363,8 +396,8 @@ if __name__ == '__main__':
     f1 = f1_score(gold_list, pred_list, average='macro')
     print(p, r, f1)
 
-    tag_file('2_train', model, pad_len, word2id, num_labels)
-    tag_file('2_test', model, pad_len, word2id, num_labels)
+    # tag_file('2_train', model, pad_len, word2id, num_labels)
+    # tag_file('2_test', model, pad_len, word2id, num_labels)
     tag_file('6_train', model, pad_len, word2id, num_labels)
     tag_file('6_test', model, pad_len, word2id, num_labels)
 
