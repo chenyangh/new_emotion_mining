@@ -234,7 +234,7 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     loss_criterion = nn.MSELoss()  #
     threshold = 0.6
     old_model = None
-    for epoch in range(30):
+    for epoch in range(10):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
         for i, (data, seq_len, label) in enumerate(train_loader):
@@ -297,27 +297,30 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     # return re_val
 
 
-def tag_file(f_name, model, pad_len, word2id, num_labels):
-    print('start tagging', f_name, "-------")
-    lines = open('OpenSubData/data_' + f_name + '.text', 'r').readlines()
+def tag_file(model, pad_len, word2id, num_labels):
+    vocab_dict = {}
+    for i, w in enumerate(open('OpenSubData/movie_25000', 'r')):
+        vocab_dict[i + 1] = w.strip()
+
+    lines = open('OpenSubData/data_6_remove_dup.txt').readlines()
+    foo_list = []
+    bar_list = []
+    for line in lines:
+        foo, bar = line.split('|')
+        foo_list.append(' '.join([vocab_dict[int(x)] for x in foo.split()]))
+        bar_list.append(' '.join([vocab_dict[int(x)] for x in bar.split()]))
+
     batch_size =1024
     from nltk.corpus import stopwords
     from nltk.tokenize import word_tokenize
-    # for col in label_cols:
-    #     label.append(data[col])
-    #
-    # label = np.asarray(label).transpose()
-    # example_sent = "This is a sample sentence, showing off the stop words filtration."
-
     stop_words = set(stopwords.words('english'))
-
     test_text = []
-    for t in tqdm(lines):
+    for t in tqdm(bar_list):
         t = t.lower()
         word_tokens = word_tokenize(t)
         filtered_sentence = [w for w in word_tokens if not w in stop_words]
         test_text.append(' '.join(filtered_sentence))
-        # if len(test_text) > 10000:
+        # if len(test_text) > 100:
         #     break
 
     test_data = TestDataSet(test_text, pad_len, word2id, num_labels, use_unk=False)
@@ -336,7 +339,11 @@ def tag_file(f_name, model, pad_len, word2id, num_labels):
         m = to_tag > threshold
         idx0 = np.where(m, to_tag, np.nanmin(to_tag) - 1).argmax(1)
         to_tag = np.where(m.any(1), idx0, np.nan)
-        np.savetxt('result/' + f_name + '.tag', to_tag, fmt='%.0f')
+        df = pd.DataFrame(
+            data={'source': foo_list, 'target': bar_list,
+                  'tag': ['Nan' if np.isnan(x) else "%.0f" % x for x in to_tag]})
+        df = df[['source', 'target', 'tag']]
+        df.to_csv('data_6_remove_dup.csv', index=False)
 
     else:
         thres_list = [x * 0.05 for x in range(1, 20)]
@@ -397,9 +404,8 @@ if __name__ == '__main__':
     print(p, r, f1)
 
     # tag_file('2_train', model, pad_len, word2id, num_labels)
-    # tag_file('2_test', model, pad_len, word2id, num_labels)
-    tag_file('6_train', model, pad_len, word2id, num_labels)
-    tag_file('6_test', model, pad_len, word2id, num_labels)
+    # tag_file('2_test',)
+    tag_file(model, pad_len, word2id, num_labels)
 
     # with open('preds', 'bw') as f:
     #     pickle.dump(preds, f)
