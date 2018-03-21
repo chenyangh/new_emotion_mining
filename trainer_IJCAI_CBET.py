@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import *
 import itertools
+import copy
 
 NUM_CLASS = 9
 
@@ -184,19 +185,19 @@ def one_fold(fold_path):
     dev_data = DataSet(X_dev, y_dev, pad_len, word2id, num_labels)
     dev_loader = DataLoader(dev_data, batch_size=batch_size, shuffle=True)
 
-
     X_test, y_test = cbet_data(os.path.join(fold_path, 'test.csv'))
     test_data = DataSet(X_test, y_test, pad_len, word2id, num_labels)
     test_loader = DataLoader(test_data, batch_size=batch_size)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
-                                    num_labels, batch_size)
+                                    num_labels, batch_size, use_att=True, soft_last=True)
     model.load_glove_embedding(id2word)
     model.cuda()
 
     optimizer = optim.Adam(model.parameters())
     loss_criterion = nn.BCELoss()
     es = EarlyStop(2)
+    old_model = None
     for epoch in range(10):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
@@ -220,10 +221,17 @@ def one_fold(fold_path):
             pred_list.append(y_pred.data.cpu().numpy())
             gold_list.append(label.numpy())
 
+        if old_model is not None:
+            del old_model
+            old_model = copy.deepcopy(model)
+        else:
+            old_model = copy.deepcopy(model)
         print("Train Loss: ", train_loss, " Evaluation: ", test_loss)
         es.new_loss(test_loss)
         if es.if_stop():
             print('Start over fitting')
+            del model
+            model = old_model
             break
 
     # testing
@@ -313,6 +321,7 @@ if __name__ == '__main__':
     r_avg = 0
     f_avg = 0
     emotions = ['anger', 'fear', 'joy', 'love', 'sadness', 'surprise', 'thankfulness', 'disgust', 'guilt']
+    # emotions = ['anger', 'fear', 'joy', 'love', 'sadness', 'surprise', 'thankfulness', 'disgust', 'guilt', 'betrayed', 'frustrated', 'hopeless', 'lonely', 'rejected', 'schadenfreude', 'self_loath']
 
     cnf_matrix_list = []
     cm = np.zeros([len(emotions), len(emotions)])
@@ -321,7 +330,7 @@ if __name__ == '__main__':
 
     for i in range(5):
         fold_path = 'data/Folds_9_Emotions/fold_' + str(i)
-
+        # fold_path = 'data/Folds/fold_' + str(i)
         pred_list, gold_list = one_fold(fold_path)
 
         f_ma = []
