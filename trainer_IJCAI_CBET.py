@@ -170,7 +170,6 @@ def one_fold(fold_path):
     num_labels = NUM_CLASS
 
     X, y = cbet_data(os.path.join(fold_path, 'train.csv'))
-    X_test, y_test = cbet_data(os.path.join(fold_path, 'test.csv'))
 
     train_index, dev_index = stratified_shuffle_split(X, y)
     y = np.asarray(y)
@@ -183,8 +182,10 @@ def one_fold(fold_path):
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
     dev_data = DataSet(X_dev, y_dev, pad_len, word2id, num_labels)
-    dev_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    dev_loader = DataLoader(dev_data, batch_size=batch_size, shuffle=True)
 
+
+    X_test, y_test = cbet_data(os.path.join(fold_path, 'test.csv'))
     test_data = DataSet(X_test, y_test, pad_len, word2id, num_labels)
     test_loader = DataLoader(test_data, batch_size=batch_size)
 
@@ -210,6 +211,7 @@ def one_fold(fold_path):
         pred_list = []
         gold_list = []
         test_loss = 0
+        # evaluation
         for i, (data, seq_len, label) in enumerate(dev_loader):
             data, label, seq_len = sort_batch(data, label, seq_len.view(-1))
             y_pred = model(Variable(data, volatile=True).cuda(), seq_len)
@@ -326,11 +328,12 @@ if __name__ == '__main__':
         f_mi = []
         for threshold in range(0, 100, 5):
             threshold /= 100
-            tmp = CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold)
+            tmp = CalculateFM(pred_list, gold_list, threshold=threshold)
             f_ma.append(tmp['MacroFM'])
             f_mi.append(tmp['MicroFM'])
 
-        print(f_ma, f_mi)
+        print(f_ma)
+        print(f_mi)
 
         pred_list = np.argmax(pred_list, axis=1)
         gold_list = np.argmax(gold_list, axis=1)
