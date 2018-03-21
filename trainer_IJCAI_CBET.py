@@ -18,6 +18,7 @@ import itertools
 
 NUM_CLASS = 9
 
+
 def cbet_data(file_path):
     from nltk.corpus import stopwords
     from nltk.tokenize import word_tokenize
@@ -26,9 +27,9 @@ def cbet_data(file_path):
     label = []
     train_text = []
     for t in open(file_path, 'r').readlines():
-        tokens = t.split()
-        text = t[1].lower()
-        a_label = [1 if str(x) in t[2:] else 0 for x in range(NUM_CLASS)]
+        tokens = t.strip().split('\t')
+        text = tokens[1].lower()
+        a_label = [1 if str(x) in tokens[2:] else 0 for x in range(NUM_CLASS)]
         a_label = ''.join(str(e) for e in reversed(a_label))
         label.append(int(a_label, 2))
         word_tokens = word_tokenize(text)
@@ -36,6 +37,32 @@ def cbet_data(file_path):
         train_text.append(' '.join(filtered_sentence))
 
     return train_text, label
+
+
+def stratified_shuffle_split(X, y):
+    split_ratio = 0.1
+    X_s, y_s, X_d, y_d = [], [], [], []
+    single_label_decimal = [2**x for x in range(NUM_CLASS)]
+    for i_x, i_y in zip(X, y):
+        if i_y in single_label_decimal:
+            X_s.append(i_x)
+            y_s.append(i_y)
+        else:
+            X_d.append(i_x)
+            y_d.append(i_y)
+
+    from sklearn.model_selection import StratifiedShuffleSplit, ShuffleSplit
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=split_ratio, random_state=0)
+    train_index, dev_index = next(sss.split(X_s, y_s))
+
+    sss = ShuffleSplit(n_splits=1, test_size=split_ratio, random_state=0)
+    train_index_d, dev_index_d = next(sss.split(X_d, y_d))
+
+    train_index = np.concatenate((train_index, train_index_d), axis=0)
+    dev_index = np.concatenate((dev_index, dev_index_d), axis=0)
+
+    assert len(train_index) + len(dev_index) == len(y)
+    return train_index, dev_index
 
 
 class DataSet(Dataset):
@@ -78,7 +105,7 @@ class DataSet(Dataset):
             # a_label = [0] * self.num_label
 
             tmp = bin(y)[2:]
-            a_label = reversed(tmp).extend((self.num_label-len(tmp))*[0])
+            a_label = [int(x) for x in tmp[::-1]] + (self.num_label - len(tmp)) * [0]
 
             self.label.append(a_label)
         print(num_empty_lines, 'empty lines found')
@@ -143,10 +170,10 @@ def one_fold(fold_path):
     num_labels = NUM_CLASS
 
     X, y = cbet_data(os.path.join(fold_path, 'train.csv'))
-    X_test, y_test = cbet_data(os.path.join(fold_path, 'train.csv'))
-    from sklearn.model_selection import StratifiedShuffleSplit
-    sss = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=0)
-    train_index, dev_index = next(sss.split(X, y))
+    X_test, y_test = cbet_data(os.path.join(fold_path, 'test.csv'))
+
+    train_index, dev_index = stratified_shuffle_split(X, y)
+    y = np.asarray(y)
     X_train, X_dev = [X[i] for i in train_index], [X[i] for i in dev_index]
     y_train, y_dev = y[train_index], y[dev_index]
 
@@ -169,7 +196,7 @@ def one_fold(fold_path):
     optimizer = optim.Adam(model.parameters())
     loss_criterion = nn.BCELoss()
     es = EarlyStop(2)
-    for epoch in range(5):
+    for epoch in range(10):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
         for i, (data, seq_len, label) in enumerate(train_loader):
@@ -210,7 +237,6 @@ def one_fold(fold_path):
         gold_list.append(label.numpy())
 
     return np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0)
-
 
 
 def plot_confusion_matrix(cm, classes,
@@ -294,7 +320,17 @@ if __name__ == '__main__':
     for i in range(5):
         fold_path = 'data/Folds_9_Emotions/fold_' + str(i)
 
-        pred_list, gold_list = one_fold(fold_path, is_nine_folds=True)
+        pred_list, gold_list = one_fold(fold_path)
+
+        f_ma = []
+        f_mi = []
+        for threshold in range(0, 100, 5):
+            threshold /= 100
+            tmp = CalculateFM(np.concatenate(pred_list, axis=0), np.concatenate(gold_list, axis=0), threshold=threshold)
+            f_ma.append(tmp['MacroFM'])
+            f_mi.append(tmp['MicroFM'])
+
+        print(f_ma, f_mi)
 
         pred_list = np.argmax(pred_list, axis=1)
         gold_list = np.argmax(gold_list, axis=1)
@@ -322,9 +358,3 @@ if __name__ == '__main__':
     plt.figure()
     plot_confusion_matrix(cm, classes=emotions, normalize=False)
     plt.show()
-
-
-
-
-
-
