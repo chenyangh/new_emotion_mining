@@ -1,0 +1,144 @@
+
+Training Loss 4.635680379030101
+Evaluating:
+468it [02:12,  3.52it/s]
+Evaluation Loss 0.0071045808218206585
+Training on epoch=1 -------------------------
+8881it [2:13:59,  1.10it/s]
+Training Loss 4.147858653119234
+Evaluating:
+468it [02:14,  3.48it/s]
+Evaluation Loss 0.006803718672106405
+Training on epoch=2 -------------------------
+8881it [2:14:36,  1.10it/s]
+Training Loss 4.0133052382871215
+Evaluating:
+468it [02:15,  3.46it/s]
+Evaluation Loss 0.006646659812489504
+Training on epoch=3 -------------------------
+8881it [2:14:26,  1.10it/s]
+Training Loss 3.930699074479147
+Evaluating:
+468it [02:15,  3.44it/s]
+Evaluation Loss 0.006542725547099879
+Training on epoch=4 -------------------------
+8881it [2:14:05,  1.10it/s]
+Training Loss 3.871450363636074
+Evaluating:
+468it [02:15,  3.46it/s]
+Evaluation Loss 0.006468232628207801
+Training on epoch=5 -------------------------
+8881it [2:14:37,  1.10it/s]
+Training Loss 3.8250142524424824
+Evaluating:
+468it [02:15,  3.45it/s]
+Evaluation Loss 0.00641050064033917
+Training on epoch=6 -------------------------
+8881it [2:14:33,  1.10it/s]
+Training Loss 3.78691500199308
+Evaluating:
+468it [02:15,  3.46it/s]
+Evaluation Loss 0.00636440273896119
+Training on epoch=7 -------------------------
+8881it [2:14:33,  1.10it/s]
+Training Loss 3.7547415133842827
+Evaluating:
+468it [02:15,  3.47it/s]
+Evaluation Loss 0.0063270307831207314
+Training on epoch=8 -------------------------
+8881it [2:14:31,  1.10it/s]
+Training Loss 3.726988155538534
+Evaluating:
+468it [02:14,  3.47it/s]
+Evaluation Loss 0.006296097001203993
+Training on epoch=9 -------------------------
+8881it [2:14:27,  1.10it/s]
+Training Loss 3.702674034637922
+Evaluating:
+468it [02:15,  3.45it/s]
+Evaluation Loss 0.006270351169038201
+Training on epoch=10 -------------------------
+8881it [2:14:10,  1.10it/s]
+Training Loss 3.6810127488136515
+Evaluating:
+468it [02:16,  3.44it/s]
+Evaluation Loss 0.006248732188257113
+Training on epoch=11 -------------------------
+8881it [2:14:10,  1.10it/s]
+Training Loss 3.6614706609484675
+Evaluating:
+468it [02:15,  3.45it/s]
+Evaluation Loss 0.006230680742028191
+Training on epoch=12 -------------------------
+8881it [2:13:58,  1.10it/s]
+Training Loss 3.6436414186608723
+Evaluating:
+468it [02:13,  3.51it/s]
+Evaluation Loss 0.006215629439328914
+Training on epoch=13 -------------------------
+8881it [2:14:44,  1.10it/s]
+Training Loss 3.62722789819187
+Evaluating:
+468it [02:15,  3.47it/s]
+Evaluation Loss 0.006202718387852857
+Training on epoch=14 -------------------------
+8881it [2:14:01,  1.10it/s]
+Training Loss 3.6120137685207685
+Evaluating:
+468it [02:12,  3.52it/s]
+Evaluation Loss 0.006192269207659006
+Training on epoch=15 -------------------------
+8881it [2:14:00,  1.10it/s]
+Training Loss 3.597813785586186
+Evaluating:
+468it [02:12,  3.52it/s]
+Evaluation Loss 0.006183583792905851
+Training on epoch=16 -------------------------
+8881it [2:14:13,  1.10it/s]
+Training Loss 3.5845164204322764
+Evaluating:
+468it [02:15,  3.45it/s]
+Evaluation Loss 0.00617661173708081
+Training on epoch=17 -------------------------
+8881it [2:13:58,  1.10it/s]
+Training Loss 3.5720285522737703
+Evaluating:
+468it [02:12,  3.52it/s]
+Evaluation Loss 0.006171196012194419
+Training on epoch=18 -------------------------
+8881it [2:13:57,  1.10it/s]
+Training Loss 3.560289505872102
+Evaluating:
+468it [02:15,  3.46it/s]
+Evaluation Loss 0.006166999011342535
+Training on epoch=19 -------------------------
+8881it [2:14:11,  1.10it/s]
+Training Loss 3.5492509332839353
+Evaluating:
+468it [02:12,  3.52it/s]
+Evaluation Loss 0.006164138529109841
+Training on epoch=20 -------------------------
+8881it [2:13:55,  1.11it/s]
+Training Loss 3.5388053848058494
+Evaluating:
+468it [02:13,  3.51it/s]
+Evaluation Loss 0.006161929659599408
+Training on epoch=21 -------------------------
+8881it [2:13:58,  1.10it/s]
+Training Loss 3.528904329874673
+Evaluating:
+468it [02:13,  3.51it/s]
+Evaluation Loss 0.006160602829668127
+Training on epoch=22 -------------------------
+8881it [2:14:10,  1.10it/s]
+Training Loss 3.5194317891090674
+Evaluating:
+468it [02:13,  3.51it/s]
+Evaluation Loss 0.006159875213117072
+Training on epoch=23 -------------------------
+8881it [2:14:07,  1.10it/s]
+Training Loss 3.510339580217618
+Evaluating:
+468it [02:15,  3.44it/s]
+Evaluation Loss 0.006159959414412415
+Start over fitting

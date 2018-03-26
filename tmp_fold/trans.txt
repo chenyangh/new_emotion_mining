@@ -1,0 +1,55 @@
+new_trainer_transformation.py
+
+Training Loss 4.167705758560921
+Evaluating:
+5609it [01:56, 48.25it/s]
+Evaluation Loss 0.07906067815589138
+Training on epoch=1 -------------------------
+106564it [2:09:31, 13.71it/s]
+Training Loss 3.8665089653947065
+Evaluating:
+5609it [01:56, 48.33it/s]
+Evaluation Loss 0.07693328092410015
+Training on epoch=2 -------------------------
+106564it [2:09:25, 13.72it/s]
+Training Loss 3.772192530496854
+Evaluating:
+5609it [01:55, 48.40it/s]
+Evaluation Loss 0.0760310733523053
+Training on epoch=3 -------------------------
+106564it [2:09:14, 13.74it/s]
+Training Loss 3.7167824103969966
+Evaluating:
+5609it [01:56, 48.27it/s]
+Evaluation Loss 0.07554269427172285
+Training on epoch=4 -------------------------
+106564it [2:09:20, 13.73it/s]
+Training Loss 3.677516479403879
+Evaluating:
+5609it [01:55, 48.47it/s]
+Evaluation Loss 0.07525269023777789
+Training on epoch=5 -------------------------
+106564it [2:09:44, 13.69it/s]
+Training Loss 3.6467458181127523
+Evaluating:
+5609it [01:57, 47.76it/s]
+Evaluation Loss 0.07508002188682229
+Training on epoch=6 -------------------------
+106564it [2:09:36, 13.70it/s]
+Training Loss 3.620936503228165
+Evaluating:
+5609it [01:56, 47.95it/s]
+Evaluation Loss 0.07499278531582866
+Training on epoch=7 -------------------------
+106564it [2:09:41, 13.69it/s]
+Training Loss 3.598450577366183
+Evaluating:
+5609it [01:57, 47.90it/s]
+Evaluation Loss 0.07498922424011836
+Training on epoch=8 -------------------------
+106564it [2:09:16, 13.74it/s]
+Training Loss 3.5784141708609365
+Evaluating:
+5609it [01:56, 48.03it/s]
+Evaluation Loss 0.07501113590412256
+
