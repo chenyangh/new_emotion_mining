@@ -53,7 +53,7 @@ def draw(f, train_loss_list, eval_loss_list):
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
     # plt.show()
-    pp = PdfPages(dir_path + f + 'train_eval.pdf')
+    pp = PdfPages(dir_path + f + '_train_eval.pdf')
     pp.savefig(fig)
     pp.close()
     # plt.imsave
