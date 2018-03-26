@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import StratifiedShuffleSplit, ShuffleSplit
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
 
 
 def cbet_data(label_cols):
@@ -57,6 +58,9 @@ if __name__ == '__main__':
     # golds = np.zeros((int(len(X)*0.1) + 1, y.shape[1]))
     # preds = np.zeros((int(len(X)*0.1) + 1, y.shape[1]))
     y = np.asarray(y[label_cols])
-    for train_index, dev_index in sss.split(X, y):
-        X_train, X_dev = [X[i] for i in train_index], [X[i] for i in dev_index]
-        y_train, y_dev = y[train_index], y[dev_index]
+    train_index, dev_index = next(sss.split(X, y))
+    X_train, X_dev = [X[i] for i in train_index], [X[i] for i in dev_index]
+    y_train, y_dev = y[train_index], y[dev_index]
+
+    clf = RandomForestClassifier(max_depth=2, random_state=0)
+
