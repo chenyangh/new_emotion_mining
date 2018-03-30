@@ -47,12 +47,20 @@ if __name__ == '__main__':
     x_dev_fea = x_dev_fea.toarray()
 
     # clf = RandomForestClassifier(n_estimators=30, random_state=0, n_jobs=-1)
-    clf = OneVsRestClassifier(SVC(kernel='linear'), n_jobs=-1)
-
+    # clf = OneVsRestClassifier(SVC(kernel='linear'), n_jobs=-1)
+    clf = OneVsRestClassifier(SVC(kernel='rbf', probability=True), n_jobs=-1)
     clf.fit(x_train_fea, y_train)
+
     y_dev_pred = clf.predict(x_dev_fea)
+    result = clf.predict_proba(x_dev_fea)
+    import pickle
+    with open('result_prob.pkl', 'bw') as f:
+        pickle.dump([result], f)
+
     f1 = f1_score(y_dev, y_dev_pred, average='macro')
     p = precision_score(y_dev, y_dev_pred, average='macro')
     r = recall_score(y_dev, y_dev_pred, average='macro')
-
     print(f1, p, r)
+
+    with open('result_measure.txt', 'w') as f:
+        f.write(str(f1) + ' ' + str(p) + ' ' + str(r) + '\n')
