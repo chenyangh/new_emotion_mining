@@ -226,7 +226,7 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     # test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
-                                    num_labels, batch_size, use_att=True, soft_last=False)
+                                    num_labels, batch_size, use_att=False, soft_last=False)
     model.load_glove_embedding(id2word)
     model.cuda()
     es = EarlyStop(2)
@@ -283,6 +283,15 @@ def one_fold(X_train, y_train, X_dev, y_dev):
             print('Start over fitting')
             del model
             model = old_model
+            torch.save(
+                model.state_dict(),
+                open(os.path.join(
+                    'checkpoint',
+                    'cbet.model'), 'wb'
+                )
+            )
+            with open('checkpoint/some_data.pkl', 'wb') as f:
+                pickle.dump([word2id, id2word], f)
             break
 
     return gold_list, pred_list, model, pad_len, word2id, num_labels
@@ -405,7 +414,7 @@ if __name__ == '__main__':
 
     # tag_file('2_train', model, pad_len, word2id, num_labels)
     # tag_file('2_test',)
-    tag_file(model, pad_len, word2id, num_labels)
+    # tag_file(model, pad_len, word2id, num_labels)
 
     # with open('preds', 'bw') as f:
     #     pickle.dump(preds, f)
