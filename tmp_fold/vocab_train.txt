@@ -1,0 +1,78 @@
+new_trainer_vocablayer.py
+Training Loss 4.536338311766105
+Evaluating:
+4674it [05:08, 15.15it/s]g
+Evaluation Loss 0.0707036430168024
+Training on epoch=1 -------------------------
+88804it [14:49:37,  1.66it/s]
+Training Loss 4.150734112383817
+Evaluating:
+4674it [05:18, 14.70it/s]
+Evaluation Loss 0.06843588031616282
+Training on epoch=2 -------------------------
+88804it [14:50:46,  1.66it/s]
+Training Loss 4.044698927171753
+Evaluating:
+4674it [05:17, 14.70it/s]
+Evaluation Loss 0.067297814985122
+Training on epoch=3 -------------------------
+88804it [14:50:43,  1.66it/s]
+Training Loss 3.979227234943608
+Evaluating:
+4674it [05:17, 14.72it/s]
+Evaluation Loss 0.06656668244612335
+Training on epoch=4 -------------------------
+88804it [14:50:47,  1.66it/s]
+Training Loss 3.931046931115434
+Evaluating:
+4674it [05:17, 14.73it/s]
+Evaluation Loss 0.06605218194453587
+Training on epoch=5 -------------------------
+88804it [14:49:40,  1.66it/s]
+Training Loss 3.893153287241649
+Evaluating:
+4674it [05:08, 15.16it/s]
+Evaluation Loss 0.06569162569036771
+Training on epoch=6 -------------------------
+88804it [14:48:16,  1.67it/s]
+Training Loss 3.8623842193255795
+Evaluating:
+4674it [05:08, 15.17it/s]
+Evaluation Loss 0.06543766812307085
+Training on epoch=7 -------------------------
+88804it [14:48:18,  1.67it/s]
+Training Loss 3.8361889829210334
+Evaluating:
+4674it [05:07, 15.18it/s]
+Evaluation Loss 0.06525884167064704
+Training on epoch=8 -------------------------
+88804it [14:48:15,  1.67it/s]
+Training Loss 3.813292733762023
+Evaluating:
+4674it [05:07, 15.18it/s]
+Evaluation Loss 0.06513737068205108
+Training on epoch=9 -------------------------
+88804it [14:48:11,  1.67it/s]
+Training Loss 3.7926757639595188
+Evaluating:
+4674it [05:07, 15.20it/s]
+Evaluation Loss 0.06505946741898129
+Training on epoch=10 -------------------------
+88804it [14:48:06,  1.67it/s]
+Training Loss 3.774150683728155
+Evaluating:
+4674it [05:06, 15.26it/s]
+Evaluation Loss 0.0650150786485703
+Training on epoch=11 -------------------------
+88804it [14:48:10,  1.67it/s]
+Training Loss 3.756707107368373
+Evaluating:
+4674it [05:07, 15.20it/s]
+Evaluation Loss 0.06499673650514626
+Training on epoch=12 -------------------------
+88804it [14:48:07,  1.67it/s]
+Training Loss 3.7407253544955483
+Evaluating:
+4674it [05:06, 15.23it/s]
+Evaluation Loss 0.06500203531538759
+Start over fitting
