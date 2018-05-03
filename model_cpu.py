@@ -132,8 +132,10 @@ class AttentionLSTMClassifier(nn.Module):
         self.bidirectional = True
         self.use_att = use_att
         self.soft_last = soft_last
+        self.num_layers = 2
         self.embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx=self.pad_token_src)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, bidirectional=self.bidirectional, dropout=0.75)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, num_layers=self.num_layers, batch_first=True,
+                            bidirectional=self.bidirectional, dropout=0.75)
         # self.hidden = self.init_hidden()
         self.att = SelfAttention
         if self.bidirectional:
@@ -152,11 +154,11 @@ class AttentionLSTMClassifier(nn.Module):
     def init_hidden(self, x):
         batch_size = x.size(0)
         if self.bidirectional:
-            h0 = Variable(torch.zeros(2, batch_size, self.hidden_dim), requires_grad=False)
-            c0 = Variable(torch.zeros(2, batch_size, self.hidden_dim), requires_grad=False)
+            h0 = Variable(torch.zeros(2*self.num_layers, batch_size, self.hidden_dim), requires_grad=False)
+            c0 = Variable(torch.zeros(2*self.num_layers, batch_size, self.hidden_dim), requires_grad=False)
         else:
-            h0 = Variable(torch.zeros(1, batch_size, self.hidden_dim), requires_grad=False)
-            c0 = Variable(torch.zeros(1, batch_size, self.hidden_dim), requires_grad=False)
+            h0 = Variable(torch.zeros(1*self.num_layers, batch_size, self.hidden_dim), requires_grad=False)
+            c0 = Variable(torch.zeros(1*self.num_layers, batch_size, self.hidden_dim), requires_grad=False)
         return (h0, c0)
 
     def forward(self, x, seq_len):

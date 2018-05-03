@@ -7,7 +7,7 @@ import pickle
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
-stop_words = set(stopwords.words('english'))
+# stop_words = set(stopwords.words('english'))
 NUM_CLASS = 9
 
 
@@ -16,8 +16,8 @@ def inference(t, word2id, model):
     t = t.lower()
 
     word_tokens = word_tokenize(t)
-    filtered_sentence = [w for w in word_tokens if w not in stop_words]
-    text = ' '.join(filtered_sentence)
+    # filtered_sentence = [w for w in word_tokens if w not in stop_words]
+    text = ' '.join(word_tokens)
     tokens = text.split()
     tmp = [word2id[x] if x in word2id else word2id['<unk>'] for x in tokens]
     if len(tmp) == 0:
@@ -32,10 +32,10 @@ def inference(t, word2id, model):
 
 def main():
     num_labels = NUM_CLASS
-    vocab_size = 20000
-    batch_size = 64
+    vocab_size = 30000
+    batch_size = 5
     embedding_dim = 200
-    hidden_dim = 500
+    hidden_dim = 600
     label_cols = ['anger', 'fear', 'joy', 'love', 'sadness', 'surprise', 'thankfulness', 'disgust', 'guilt']
     with open('checkpoint/some_data.pkl', 'br') as f:
         word2id, id2word = pickle.load(f)
@@ -52,7 +52,7 @@ def main():
 
     s = socket.socket()
     host = socket.gethostname()
-    port = 12221
+    port = 12222
     s.bind((host, port))
 
     s.listen(5)
