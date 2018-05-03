@@ -41,8 +41,8 @@ def cbet_data(label_cols):
     for t in data['text'].fillna("fillna").values:
         t = t.lower()
         word_tokens = word_tokenize(t)
-        filtered_sentence = [w for w in word_tokens if not w in stop_words]
-        train_text.append(' '.join(filtered_sentence))
+        # filtered_sentence = [w for w in word_tokens if not w in stop_words]
+        train_text.append(' '.join(word_tokens))
 
     # test_text = []
     # for t in test_data['comment_text'].fillna("fillna").values:
@@ -208,10 +208,10 @@ def one_fold(X_train, y_train, X_dev, y_dev):
 
     num_labels = NUM_CLASS
     vocab_size = 20000
-    pad_len = 40
+    pad_len = 50
     batch_size = 64
     embedding_dim = 200
-    hidden_dim = 500
+    hidden_dim = 1200
     __use_unk = False
 
     word2id, id2word = build_vocab(X_train, vocab_size)
@@ -238,7 +238,7 @@ def one_fold(X_train, y_train, X_dev, y_dev):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
         for i, (data, seq_len, label) in enumerate(train_loader):
-
+            model.train()
             data, label, seq_len = sort_batch(data, label, seq_len.view(-1))
             y_pred = model(Variable(data).cuda(), seq_len)
 
@@ -253,6 +253,7 @@ def one_fold(X_train, y_train, X_dev, y_dev):
         gold_list = []
         test_loss = 0
         for _, (_data, _seq_len, _label) in enumerate(dev_loader):
+            model.eval()
             data, label, seq_len = sort_batch(_data, _label, _seq_len.view(-1))
             y_pred = model(Variable(data, volatile=True).cuda(), seq_len)
             loss = loss_criterion(y_pred, Variable(label).cuda()) #* Variable(torch.FloatTensor([roc_reward])).cuda()
@@ -275,14 +276,19 @@ def one_fold(X_train, y_train, X_dev, y_dev):
         print("Train Loss: ", train_loss, " Evaluation: ", test_loss)
         es.new_loss(test_loss)
         if old_model is not None:
-            del old_model
+            del old_model, old_pred_list
             old_model = copy.deepcopy(model)
+            old_pred_list = copy.deepcopy(pred_list)
+
         else:
             old_model = copy.deepcopy(model)
+            old_pred_list = copy.deepcopy(pred_list)
+
         if es.if_stop():
             print('Start over fitting')
             del model
             model = old_model
+            pred_list = old_pred_list
             torch.save(
                 model.state_dict(),
                 open(os.path.join(
