@@ -207,11 +207,11 @@ def sort_batch_test(batch, lengths):
 def one_fold(X_train, y_train, X_dev, y_dev):
 
     num_labels = NUM_CLASS
-    vocab_size = 20000
-    pad_len = 50
+    vocab_size = 30000
+    pad_len = 40
     batch_size = 64
     embedding_dim = 200
-    hidden_dim = 1200
+    hidden_dim = 600
     __use_unk = False
 
     word2id, id2word = build_vocab(X_train, vocab_size)
