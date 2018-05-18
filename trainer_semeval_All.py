@@ -193,9 +193,9 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     num_labels = NUM_CLASS
     vocab_size = 10000
     pad_len = 50
-    batch_size = 32
+    batch_size = 24
     embedding_dim = 200
-    hidden_dim = 600
+    hidden_dim = 400
     __use_unk = False
 
     word2id, id2word = build_vocab(X_train, vocab_size)
@@ -206,9 +206,6 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     dev_data = DataSet(X_dev, y_dev, pad_len, word2id, num_labels, use_unk=__use_unk)
     dev_loader = DataLoader(dev_data, batch_size=batch_size, shuffle=False)
 
-    # test_data = TestDataSet(X_test, pad_len, word2id, num_labels, use_unk=__use_unk)
-    # test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
-
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
                                     num_labels, batch_size, use_att=True, soft_last=False)
     model.load_glove_embedding(id2word)
@@ -217,11 +214,11 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     optimizer = optim.Adam(model.parameters(), lr=1e-5)
     loss_criterion = nn.MSELoss()  #
     old_model = None
-    for epoch in range(20):
+    for epoch in range(100):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
+        model.train()
         for i, (data, seq_len, label) in enumerate(train_loader):
-            model.train()
             data, label, seq_len = sort_batch(data, label, seq_len.view(-1))
             y_pred = model(Variable(data).cuda(), seq_len)
 
@@ -230,17 +227,17 @@ def one_fold(X_train, y_train, X_dev, y_dev):
             loss = loss_criterion(y_pred, Variable(label).cuda()) #* Variable(torch.FloatTensor([roc_reward])).cuda()
             loss.backward()
             optimizer.step()
-            train_loss += loss.data[0]
+            train_loss += loss.data[0] * batch_size
 
         pred_list = []
         gold_list = []
         test_loss = 0
+        model.eval()
         for _, (_data, _seq_len, _label) in enumerate(dev_loader):
-            model.eval()
             data, label, seq_len = sort_batch(_data, _label, _seq_len.view(-1))
             y_pred = model(Variable(data, volatile=True).cuda(), seq_len)
             loss = loss_criterion(y_pred, Variable(label).cuda()) #* Variable(torch.FloatTensor([roc_reward])).cuda()
-            test_loss += loss.data[0]
+            test_loss += loss.data[0] * batch_size
             y_pred = y_pred.data.cpu().numpy()
 
             pred_list.append(y_pred)  # x[np.where( x > 3.0 )]
@@ -256,7 +253,8 @@ def one_fold(X_train, y_train, X_dev, y_dev):
         # r = recall_score(gold_list, pred_list, average='binary')
         # f1 = f1_score(gold_list, pred_list, average='binary')
         # print('accuracy:', a, 'precision_score:', p, 'recall:', r, 'f1:', f1)
-        print("Train Loss: ", train_loss, " Evaluation: ", test_loss)
+        print("Train Loss: ", train_loss/len(train_data),
+              " Evaluation: ", test_loss/len(dev_data))
         es.new_loss(test_loss)
         if old_model is not None:
             del old_model, old_pred_list
@@ -300,6 +298,17 @@ def make_test(X_test, model, pad_len, word2id, num_labels):
     return np.concatenate(pred_list, axis=0)
 
 
+def accuracy(gold_list, pred_list):
+    n = len(gold_list)
+    score = 0
+    for gold, pred in zip(gold_list, pred_list):
+        intersect = np.sum(np.dot(gold, pred))
+        union = np.sum(gold) + np.sum(pred) - intersect
+        score += intersect/union
+    score /= n
+    return score
+
+
 if __name__ == '__main__':
     # label_cols = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
     label_cols = ['anger', 'anticipation', 'disgust', 'fear', 'joy',
@@ -318,8 +327,12 @@ if __name__ == '__main__':
         p = precision_score(gold_list, tmp_pred_list, average='macro')
         r = recall_score(gold_list, tmp_pred_list, average='macro')
         f1 = f1_score(gold_list, tmp_pred_list, average='macro')
+        f1_micro = f1_score(gold_list, tmp_pred_list, average='micro')
+        a = accuracy(gold_list, tmp_pred_list)
         thres_dict[threshold] = f1
-        print(p, r, f1)
+        print('macro F1', f1,
+              'micro F1', f1_micro,
+              'accuracy', a)
 
     f_name_test = 'data/semeval2018/2018-E-c-En-test.txt'
     X_test, _, ID, tweet = load_data(f_name_test, label_cols)
