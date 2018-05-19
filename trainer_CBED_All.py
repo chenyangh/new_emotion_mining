@@ -205,7 +205,6 @@ def sort_batch_test(batch, lengths):
 
 
 def one_fold(X_train, y_train, X_dev, y_dev):
-
     num_labels = NUM_CLASS
     vocab_size = 30000
     pad_len = 40
@@ -226,46 +225,43 @@ def one_fold(X_train, y_train, X_dev, y_dev):
     # test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
     model = AttentionLSTMClassifier(embedding_dim, hidden_dim, vocab_size, word2id,
-                                    num_labels, batch_size, use_att=False, soft_last=False)
+                                    num_labels, batch_size, use_att=True, soft_last=False)
     model.load_glove_embedding(id2word)
     model.cuda()
     es = EarlyStop(2)
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optim.Adam(model.parameters(), lr=1e-5)
     loss_criterion = nn.MSELoss()  #
-    threshold = 0.6
     old_model = None
-    for epoch in range(10):
+    for epoch in range(20):
         print('Epoch:', epoch, '===================================')
         train_loss = 0
+        model.train()
         for i, (data, seq_len, label) in enumerate(train_loader):
-            model.train()
             data, label, seq_len = sort_batch(data, label, seq_len.view(-1))
             y_pred = model(Variable(data).cuda(), seq_len)
-
             #roc_reward = roc_auc_score(label.numpy().argmax(axis=1), y_pred.data.cpu().numpy()[:, 1])
             optimizer.zero_grad()
             loss = loss_criterion(y_pred, Variable(label).cuda()) #* Variable(torch.FloatTensor([roc_reward])).cuda()
             loss.backward()
             optimizer.step()
-            train_loss += loss.data[0]
+            train_loss += loss.data[0] * batch_size
 
         pred_list = []
         gold_list = []
         test_loss = 0
+        model.eval()
         for _, (_data, _seq_len, _label) in enumerate(dev_loader):
-            model.eval()
             data, label, seq_len = sort_batch(_data, _label, _seq_len.view(-1))
             y_pred = model(Variable(data, volatile=True).cuda(), seq_len)
             loss = loss_criterion(y_pred, Variable(label).cuda()) #* Variable(torch.FloatTensor([roc_reward])).cuda()
-            test_loss += loss.data[0]
+            test_loss += loss.data[0] * batch_size
             y_pred = y_pred.data.cpu().numpy()
-            y_pred = np.asarray([1 & (v > threshold) for v in y_pred])
             pred_list.append(y_pred)  # x[np.where( x > 3.0 )]
             gold_list.append(label.numpy())
 
         # pred_list_2 = np.concatenate(pred_list, axis=0)[:, 1]
-        pred_list = np.concatenate(pred_list, axis=0).argmax(axis=1)
-        gold_list = np.concatenate(gold_list, axis=0).argmax(axis=1)
+        pred_list = np.concatenate(pred_list, axis=0)
+        gold_list = np.concatenate(gold_list, axis=0)
         # roc = roc_auc_score(gold_list, pred_list_2)
         # print('roc:', roc)
         # a = accuracy_score(gold_list, pred_list)
@@ -273,7 +269,8 @@ def one_fold(X_train, y_train, X_dev, y_dev):
         # r = recall_score(gold_list, pred_list, average='binary')
         # f1 = f1_score(gold_list, pred_list, average='binary')
         # print('accuracy:', a, 'precision_score:', p, 'recall:', r, 'f1:', f1)
-        print("Train Loss: ", train_loss, " Evaluation: ", test_loss)
+        print("Train Loss: ", train_loss/len(train_data),
+              " Evaluation: ", test_loss/len(dev_data))
         es.new_loss(test_loss)
         if old_model is not None:
             del old_model, old_pred_list
@@ -387,19 +384,6 @@ if __name__ == '__main__':
     label_cols = ['anger', 'fear', 'joy', 'love', 'sadness', 'surprise', 'thankfulness', 'disgust', 'guilt']
     X, y = cbet_data(label_cols)
 
-    # if True:
-    #     X, y, X_test, sub_id = cbet_data(label_cols)
-    #     with open('tmp', 'bw') as f:
-    #         pickle.dump([X, y, X_test, sub_id], f)
-    # else:
-    #     with open('tmp', 'br') as f:
-    #         X, y, X_test, sub_id = pickle.load(f)
-
-
-    # import pickle
-    # with open('tmp', 'bw') as f:
-    #     pickle.dump([X_train, X_test, y_train, y_test], f)
-
     from sklearn.model_selection import StratifiedShuffleSplit, ShuffleSplit
     sss = ShuffleSplit(n_splits=1, test_size=0.1, random_state=0)
     # golds = np.zeros((int(len(X)*0.1) + 1, y.shape[1]))
@@ -413,24 +397,19 @@ if __name__ == '__main__':
         # print(class_weight)
         gold_list, pred_list, model, pad_len, word2id, num_labels = one_fold(X_train, y_train, X_dev, y_dev)
 
-    p = precision_score(gold_list, pred_list, average='macro')
-    r = recall_score(gold_list, pred_list, average='macro')
-    f1 = f1_score(gold_list, pred_list, average='macro')
-    print(p, r, f1)
+    thres_dict = {}
+    for threshold in [0.025 * x for x in range(1, 40)]:
+        print('Threshold:', threshold, end=' ')
+        tmp_pred_list = np.asarray([1 & (v > threshold) for v in pred_list])
 
-    # tag_file('2_train', model, pad_len, word2id, num_labels)
-    # tag_file('2_test',)
-    # tag_file(model, pad_len, word2id, num_labels)
-
-    # with open('preds', 'bw') as f:
-    #     pickle.dump(preds, f)
-    #
-    # prd_1 = pd.DataFrame(preds, columns=y.columns)
-    # submit = pd.concat([sub_id, prd_1], axis=1)
-    # submit.to_csv('submit.csv', index=False)
-
-    # p = precision_score(gold_list, pred_list, average='macro')
-    # r = recall_score(gold_list, pred_list, average='macro')
-    # f1 = f1_score(gold_list, pred_list, average='macro')
-    # print(p, r, f1)
-
+        p = precision_score(gold_list, tmp_pred_list, average='macro')
+        r = recall_score(gold_list, tmp_pred_list, average='macro')
+        f1 = f1_score(gold_list, tmp_pred_list, average='macro')
+        f1_micro = f1_score(gold_list, tmp_pred_list, average='micro')
+        thres_dict[threshold] = f1
+        print('macro F1:', f1,
+              'precision:', p,
+              'recall:', r,
+              'micro F1:', f1_micro
+              )
+to
