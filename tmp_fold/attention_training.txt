@@ -1,0 +1,91 @@
+Training Loss 4.684985471221932
+Evaluating:
+Evaluation Loss 0.02186427635787972
+Training on epoch=1 -------------------------
+Training Loss 4.27774688531914
+Evaluating:
+Evaluation Loss 0.021142769242105654
+Training on epoch=2 -------------------------
+Training Loss 4.163540780006628
+Evaluating:
+Evaluation Loss 0.020765706731846377
+Training on epoch=3 -------------------------
+Training Loss 4.091911690559794
+Evaluating:
+Evaluation Loss 0.020518943422559038
+Training on epoch=4 -------------------------
+Training Loss 4.04021509631055
+Evaluating:
+Evaluation Loss 0.020343313189719173
+Training on epoch=5 -------------------------
+Training Loss 3.999887386757727
+Evaluating:
+Evaluation Loss 0.02020824268318293
+Training on epoch=6 -------------------------
+Training Loss 3.966731959139876
+Evaluating:
+Evaluation Loss 0.02010180236163928
+Training on epoch=7 -------------------------
+Training Loss 3.938531694153929
+Evaluating:
+Evaluation Loss 0.020015430063946165
+Training on epoch=8 -------------------------
+Training Loss 3.9139453758577387
+Evaluating:
+Evaluation Loss 0.019944422202482468
+Training on epoch=9 -------------------------
+Training Loss 3.8921488322227824
+Evaluating:
+Evaluation Loss 0.01988567358508061
+Training on epoch=10 -------------------------
+Training Loss 3.8726426695254097
+Evaluating:
+Evaluation Loss 0.019837103150272734
+Training on epoch=11 -------------------------
+Training Loss 3.8550048297741015
+Evaluating:
+Evaluation Loss 0.01979668453057752
+Training on epoch=12 -------------------------
+Training Loss 3.8389321789178052
+Evaluating:
+Evaluation Loss 0.019763285951047954
+Training on epoch=13 -------------------------
+Training Loss 3.824125023435939
+Evaluating:
+Evaluation Loss 0.019736084616271972
+Training on epoch=14 -------------------------
+Training Loss 3.8103853265445853
+Evaluating:
+Evaluation Loss 0.019713425121760622
+Training on epoch=15 -------------------------
+Training Loss 3.7975786856838214
+Evaluating:
+Evaluation Loss 0.019694125255447708
+Training on epoch=16 -------------------------
+Training Loss 3.785547856307599
+Evaluating:
+Evaluation Loss 0.019679666884124886
+Training on epoch=17 -------------------------
+Training Loss 3.7742055300979716
+Evaluating:
+Evaluation Loss 0.019667714239085008
+Training on epoch=18 -------------------------
+Training Loss 3.7634737061377135
+Evaluating:
+Evaluation Loss 0.01965926711198274
+Training on epoch=19 -------------------------
+Training Loss 3.753275835447356
+Evaluating:
+Evaluation Loss 0.01965469939214107
+Training on epoch=20 -------------------------
+Training Loss 3.7436125443182457
+Evaluating:
+Evaluation Loss 0.019651912494965926
+Training on epoch=21 -------------------------
+Training Loss 3.734426143434708
+Evaluating:
+Evaluation Loss 0.019651634444246113
+Training on epoch=22 -------------------------
+Training Loss 3.7256553887214694
+Evaluating:
+Evaluation Loss 0.01965265550663462
